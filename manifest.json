@@ -1,0 +1,18 @@
+{
+  "name": "Hivu HR - Employee App",
+  "short_name": "Hivu HR",
+  "description": "Employee attendance and leave management system",
+  "start_url": "/Hivu-HR-with-Admin/index.html",
+  "display": "standalone",
+  "background_color": "#0A0F25",
+  "theme_color": "#0066FF",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%230066FF' width='192' height='192'/><text x='50%' y='50%' font-size='120' fill='white' font-weight='bold' text-anchor='middle' dominant-baseline='central'>H</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

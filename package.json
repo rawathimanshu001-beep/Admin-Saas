@@ -1,0 +1,28 @@
+{
+  "name": "lifestyle-creep-animations",
+  "version": "1.0.0",
+  "description": "Lifestyle Creep short-form video animations",
+  "remotion": {
+    "entryPoint": "./src/index.ts"
+  },
+  "scripts": {
+    "studio": "npx remotion studio src/index.ts",
+    "render": "npx remotion render src/index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@remotion/bundler": "^4.0.472",
+    "@remotion/renderer": "^4.0.472",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "remotion": "^4.0.472",
+    "typescript": "^6.0.3"
+  },
+  "devDependencies": {
+    "@remotion/cli": "^4.0.472"
+  }
+}
