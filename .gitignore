@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+
+# Signing — never commit
+android/keystore.properties
+*.keystore
+*.jks
+
+# Build outputs
+android/app/build/
+android/build/

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Hivu HR</title>
+<style>
+  :root { --primary:#0066FF; --navy:#0A0F25; --text:#1a2038; --muted:#5a6280; --border:#e4e7f0; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color:var(--text); line-height:1.7; background:#fafbfe; }
+  .wrap { max-width:760px; margin:0 auto; padding:48px 24px 80px; }
+  h1 { font-size:28px; margin-bottom:4px; color:var(--navy); }
+  .updated { color:var(--muted); font-size:14px; margin-bottom:32px; }
+  h2 { font-size:19px; margin:32px 0 10px; color:var(--navy); }
+  p, li { font-size:15px; color:var(--text); margin-bottom:10px; }
+  ul { padding-left:22px; }
+  table { width:100%; border-collapse:collapse; margin:12px 0; font-size:14px; }
+  th, td { border:1px solid var(--border); padding:10px 12px; text-align:left; vertical-align:top; }
+  th { background:#f0f4ff; }
+  .highlight { background:#f0f7ff; border-left:3px solid var(--primary); padding:14px 18px; border-radius:6px; margin:14px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Privacy Policy — Hivu HR</h1>
+  <div class="updated">Last updated: 16 August 2026</div>
+
+  <p>Hivu HR ("the App") is an employee attendance and HR management application ("we", "us"). This policy explains what data the App collects, why, and how it is handled. The App is intended for use by employees of organizations that have deployed Hivu HR.</p>
+
+  <h2>1. Data We Collect</h2>
+  <table>
+    <tr><th>Data</th><th>When</th><th>Why</th></tr>
+    <tr><td><strong>Location (GPS)</strong></td><td>Only at the moment you tap Clock In or Clock Out</td><td>To verify you are within your office's designated GPS zone for attendance. Location is <strong>never</strong> collected in the background or tracked continuously.</td></tr>
+    <tr><td><strong>Camera / Photos</strong></td><td>Only when you choose to update your profile picture</td><td>To let you take or select a profile photo. Photos are used for nothing else — no face recognition, no biometric processing, no ML analysis.</td></tr>
+    <tr><td><strong>Account details</strong></td><td>At registration / login</td><td>Name, work email, employee ID — to identify you within your organization's HR system.</td></tr>
+    <tr><td><strong>Attendance & leave records</strong></td><td>When you clock in/out or apply for leave</td><td>Core HR functionality: attendance logs, leave balances, payslips.</td></tr>
+    <tr><td><strong>Push notification token</strong></td><td>If you allow notifications</td><td>To notify you about leave approvals, payslips, and HR announcements.</td></tr>
+  </table>
+
+  <div class="highlight">
+    <strong>In plain words:</strong> your location is checked only at the instant of clock-in/clock-out to confirm you are at the office. The camera is used only for your profile picture. Nothing runs in the background.
+  </div>
+
+  <h2>2. How Data Is Stored</h2>
+  <ul>
+    <li>Attendance, leave, and profile data are stored securely in our database (Supabase, PostgreSQL) with row-level security so you and your organization's authorized HR admins can access only permitted records.</li>
+    <li>Profile photos may be stored via Cloudinary (media storage provider).</li>
+    <li>All data is transmitted over encrypted HTTPS connections.</li>
+  </ul>
+
+  <h2>3. Data Sharing</h2>
+  <p>We do <strong>not</strong> sell, rent, or share your personal data with third parties for advertising or marketing. Data is visible only to:</p>
+  <ul>
+    <li>You (your own records), and</li>
+    <li>Authorized HR administrators of your employer.</li>
+  </ul>
+  <p>Service providers (Supabase, Cloudinary, Google Firebase for notifications) process data solely on our behalf to provide App functionality.</p>
+
+  <h2>4. Permissions the App Requests</h2>
+  <ul>
+    <li><strong>Location</strong> — GPS zone verification at clock-in/out only.</li>
+    <li><strong>Camera & Photos</strong> — profile picture capture/selection only.</li>
+    <li><strong>Notifications</strong> — leave/payslip/HR alerts and clock-out reminders.</li>
+  </ul>
+  <p>Each permission is optional and requested only when the related feature is used. Denying a permission disables only that feature.</p>
+
+  <h2>5. Data Retention & Deletion</h2>
+  <p>Attendance and HR records are retained as long as required by your employer's HR policies and applicable labor laws. To request correction or deletion of your personal data, contact your HR administrator or email us at the address below. Account deletion requests are honored within 30 days unless retention is legally required.</p>
+
+  <h2>6. Children's Privacy</h2>
+  <p>The App is a workplace tool intended for employed adults and is not directed at children under 16.</p>
+
+  <h2>7. Changes to This Policy</h2>
+  <p>We may update this policy from time to time. Material changes will be announced in the App. The "Last updated" date above reflects the current version.</p>
+
+  <h2>8. Contact</h2>
+  <p>For privacy questions or data requests:<br>
+  <strong>Hivu HR Support</strong><br>
+  Email: <a href="mailto:rawathimanshu001@gmail.com">rawathimanshu001@gmail.com</a></p>
+</div>
+</body>
+</html>
