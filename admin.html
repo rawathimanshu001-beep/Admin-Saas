@@ -2697,13 +2697,11 @@ async function adminForgotPassword() {
 
   try {
     // Pehle check karo ki email admins table mein hai ya nahi
-    const { data, error: queryError } = await supabaseClient
-      .from('admins')
-      .select('email')
-      .eq('email', email)
-      .single();
+    // (RPC isliye kyunki RLS anon users ko admins table nahi padhne deta)
+    const { data: exists, error: queryError } = await supabaseClient
+      .rpc('admin_email_registered', { check_email: email });
 
-    if (queryError || !data) {
+    if (queryError || !exists) {
       alert('Ye email hamare admin database mein registered nahi hai.');
       return false;
     }

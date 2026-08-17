@@ -2897,13 +2897,11 @@ async function forgotPassword() {
 
   try {
     // Pehle check karo ki email employees mein hai ya nahi
-    const { data, error: queryError } = await supabaseClient
-      .from('employees')
-      .select('email')
-      .eq('email', email)
-      .single();
+    // (RPC isliye kyunki RLS anon users ko employees table nahi padhne deta)
+    const { data: exists, error: queryError } = await supabaseClient
+      .rpc('email_registered', { check_email: email });
 
-    if (queryError || !data) {
+    if (queryError || !exists) {
       showToast('Ye email hamare database mein registered nahi hai. HR admin se contact karein.');
       return false;
     }
@@ -2925,33 +2923,6 @@ async function forgotPassword() {
 }
 
 async function googleLogin() {
-  // Native Android: in-app Google account picker (no Chrome redirect),
-  // then exchange the ID token with Supabase directly.
-  if (window.CapNative && CapNative.isNative) {
-    try {
-      const idToken = await CapNative.googleNativeSignIn();
-      if (!idToken) return; // user cancelled
-
-      const { error } = await supabaseClient.auth.signInWithIdToken({
-        provider: 'google',
-        token: idToken
-      });
-      if (error) { showToast('Error: ' + error.message); return; }
-
-      try {
-        await enterAppForCurrentUser();
-      } catch (err) {
-        await supabaseClient.auth.signOut();
-        showToast(err.message || 'No employee record linked to this Google account.');
-      }
-    } catch (err) {
-      showToast('Google sign-in failed');
-      console.error(err);
-    }
-    return;
-  }
-
-  // Web: standard OAuth redirect flow
   try {
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: 'google',
