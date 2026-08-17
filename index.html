@@ -1,0 +1,5377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Hivu HR — Employee App</title>
+<meta name="description" content="Hivu HR Employee Portal — Clock in, apply leave, view payslip">
+<meta name="theme-color" content="#0066FF">
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+/* ============================================================
+   HIVU HR — Modern Minimal UI
+   Dark Minimal (default) + Light Minimal (body.light-mode)
+   Same class names & CSS variables as before — backend untouched
+   ============================================================ */
+
+:root{
+  --primary: #2E7CF6;
+  --primary-light: #5495F8;
+  --primary-dim: #1E5FD0;
+  --primary-soft: rgba(46, 124, 246, 0.12);
+  --red: #F0556A;
+  --orange: #F5A623;
+  --green: #2ECC8F;
+  --navy: #0C0F15;            /* page background */
+  --surface: #151A22;         /* card background */
+  --surface-alt: #1C2330;    /* subtle raised background */
+  --border: #232B38;
+  --input-border: #313B4C;
+  --text: #F4F6F9;
+  --muted: #8A94A6;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
+  --body-bg: #06080C;
+}
+
+body.light-mode {
+  --primary: #1D6BF3;
+  --primary-light: #3D82F5;
+  --primary-dim: #1558CC;
+  --primary-soft: rgba(29, 107, 243, 0.08);
+  --red: #E5484D;
+  --orange: #DB8B0B;
+  --green: #16A34A;
+  --navy: #F4F5F7;
+  --surface: #FFFFFF;
+  --surface-alt: #F7F8FA;
+  --border: #E9EBEF;
+  --input-border: #D3DAE4;
+  --text: #101828;
+  --muted: #7A8494;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 4px 16px rgba(16, 24, 40, 0.07);
+  --shadow-lg: 0 16px 40px rgba(16, 24, 40, 0.12);
+  --body-bg: #E8EAEE;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  font-family: 'Inter', sans-serif;
+}
+
+html, body {
+  height: 100%;
+  background: var(--body-bg);
+  font-family: 'Inter', sans-serif;
+  color: var(--text);
+  overscroll-behavior: none;
+}
+
+button {
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+input, select, textarea {
+  font-family: 'Inter', sans-serif;
+  outline: none;
+}
+
+/* ---------- App shell ---------- */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-width: 430px;
+  margin: 0 auto;
+  background: var(--navy);
+  position: relative;
+  overflow: hidden;
+}
+
+.screen {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+.screen::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------- Top bar ---------- */
+
+.topbar {
+  background: var(--navy);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notif-btn,
+.theme-toggle {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  font-size: 17px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.notif-btn:hover,
+.theme-toggle:hover {
+  background: var(--surface-alt);
+  border-color: var(--muted);
+}
+
+.notif-dot {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 2px solid var(--navy);
+}
+
+.notif-panel {
+  position: absolute;
+  top: 100%;
+  right: 12px;
+  width: 310px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  display: none;
+  overflow: hidden;
+}
+
+.notif-panel.open {
+  display: block;
+}
+
+.notif-panel-title {
+  padding: 12px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Sirf ~3 notifications dikhein, baaki scroll se */
+#notif-items-container {
+  max-height: 246px;
+  overflow-y: auto;
+}
+
+#notif-items-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+#notif-items-container::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.notif-item:hover {
+  background: var(--surface-alt);
+}
+
+.notif-item:last-child {
+  border-bottom: none;
+}
+
+.notif-item-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: transparent;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.notif-item.unread .notif-item-icon {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+.notif-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-item-title {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.notif-item.unread .notif-item-title {
+  font-weight: 700;
+}
+
+.notif-item-msg {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-item.expanded .notif-item-msg {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.notif-item-date {
+  color: var(--muted);
+  opacity: 0.75;
+  font-size: 10px;
+  margin-top: 3px;
+}
+
+.notif-item-chev {
+  color: var(--muted);
+  font-size: 13px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: transform 0.2s;
+}
+
+.notif-item.expanded .notif-item-chev {
+  transform: rotate(180deg);
+}
+
+/* ---------- Pages ---------- */
+
+.page {
+  display: none;
+  padding-bottom: 24px;
+}
+
+.page.active {
+  display: block;
+}
+
+/* ---------- Hero ---------- */
+
+.hero {
+  background: transparent;
+  padding: 12px 16px 2px;
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hero-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--surface-alt);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.hero-greeting {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.hero-name {
+  color: var(--text);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+}
+
+.hero-role {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* ---------- Stat cards ---------- */
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px 16px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 8px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+}
+
+.stat-val {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+.stat-label {
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+/* ---------- Sections ---------- */
+
+.section {
+  padding: 0 16px;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.01em;
+  text-transform: none;
+  margin-bottom: 8px;
+}
+
+/* ---------- Segmented Tabs ---------- */
+
+.seg-tabs {
+  display: inline-flex;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.seg-btn {
+  padding: 8px 18px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.seg-btn:hover {
+  color: var(--text);
+}
+
+.seg-btn.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Celebrations ---------- */
+
+.celebrate-card {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  margin-bottom: 2px;
+  scroll-behavior: smooth;
+}
+
+.celebrate-card::-webkit-scrollbar {
+  display: none;
+}
+
+#celebrate-items {
+  display: flex;
+  gap: 8px;
+}
+
+.celebrate-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  width: 86px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 6px;
+  box-shadow: var(--shadow-sm);
+}
+
+.celebrate-emoji {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.celebrate-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--surface-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.celebrate-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.celebrate-sub {
+  font-size: 10px;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+/* ---------- Clock card ---------- */
+
+.clock-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin: 0 16px 12px;
+  box-shadow: var(--shadow-md);
+}
+
+.clock-top {
+  padding: 12px 14px 10px;
+}
+
+.clock-time {
+  font-size: 23px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  display: inline-block;
+}
+
+.elapsed-time {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--primary);
+  margin-top: 2px;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-date-txt {
+  color: var(--muted);
+  font-size: 11.5px;
+  margin-top: 0;
+}
+
+.clock-times-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 9px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+
+.clock-time-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.clock-time-label {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 4px;
+}
+
+.clock-time-val {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-status-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.status-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pulse-animate {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.85); }
+}
+
+.clock-status-txt {
+  font-size: 12.5px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.clock-body {
+  background: var(--surface-alt);
+  padding: 10px 14px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.loc-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  margin-bottom: 10px;
+}
+
+.loc-row i {
+  color: var(--primary);
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.loc-label {
+  font-size: 12.5px;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.loc-coords {
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.btn-clock {
+  width: 100%;
+  padding: 11px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s, transform 0.1s, opacity 0.2s;
+  letter-spacing: 0.01em;
+}
+
+.btn-clock-in {
+  background: var(--primary);
+  color: #fff;
+}
+
+.btn-clock-in:hover:not(:disabled) {
+  background: var(--primary-dim);
+}
+
+.btn-clock-out {
+  background: var(--red);
+  color: #fff;
+}
+
+.btn-clock-out:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.btn-clock:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-clock:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Quick actions ---------- */
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.quick-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.1s, background 0.2s;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.quick-card:hover {
+  border-color: var(--primary);
+  background: var(--surface-alt);
+}
+
+.quick-card:active {
+  transform: scale(0.98);
+}
+
+.quick-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quick-icon-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke: white;
+}
+
+.quick-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.quick-sub {
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.2;
+}
+
+/* ---------- Bottom nav ---------- */
+
+.bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  border-top: 1px solid var(--border);
+  background: var(--navy);
+  flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 9px 0 7px;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s;
+  border: none;
+  background: none;
+  position: relative;
+}
+
+.nav-icon-wrap {
+  width: 42px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  transition: background 0.2s;
+}
+
+.nav-item.active .nav-icon-wrap {
+  background: var(--primary-soft);
+}
+
+.nav-item.active {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.nav-item.active svg {
+  stroke: var(--primary);
+}
+
+.nav-item::after {
+  display: none;
+}
+
+/* ---------- Forms ---------- */
+
+.form-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.form-group {
+  margin-bottom: 14px;
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+  display: block;
+}
+
+.form-input, .form-select, .form-textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  background: var(--navy);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-input::placeholder, .form-textarea::placeholder {
+  color: var(--muted);
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* Native select ko theme ke hisaab se modern look — custom chevron ke saath */
+select.form-select, select.form-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238A94A6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+select.form-select option, select.form-input option {
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+}
+
+/* Number inputs ke native spinner arrows hatao */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Custom themed dropdown panel (native OS popup ki jagah) */
+.select-panel {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  max-height: 260px;
+  overflow-y: auto;
+  z-index: 3000;
+  padding: 4px;
+}
+
+.select-panel-item {
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.select-panel-item:hover {
+  background: var(--navy);
+}
+
+.select-panel-item.selected {
+  background: var(--primary);
+  color: #fff;
+}
+
+input[type="date"] {
+  color-scheme: dark;
+}
+
+body.light-mode input[type="date"] {
+  color-scheme: light;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-outer-spin-button,
+input[type="date"]::-webkit-inner-spin-button {
+  display: none;
+}
+
+.form-textarea {
+  resize: none;
+  line-height: 1.5;
+}
+
+.btn-submit {
+  width: 100%;
+  padding: 13px;
+  border-radius: 6px;
+  background: var(--primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s, opacity 0.2s;
+  border: none;
+}
+
+.btn-submit:hover {
+  background: var(--primary-dim);
+}
+
+.btn-submit:active {
+  transform: scale(0.98);
+}
+
+.btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Leave balance (legacy) ---------- */
+
+.balance-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 16px;
+  padding-bottom: 0;
+}
+
+.bal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.bal-type {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.bal-count {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bal-total {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.bal-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.bal-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+/* ---------- Month picker ---------- */
+
+.month-picker {
+  display: flex;
+  gap: 8px;
+  padding: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.month-picker::-webkit-scrollbar {
+  display: none;
+}
+
+.month-chip {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  background: var(--surface);
+  flex-shrink: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.month-chip:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.month-chip.selected {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+/* ---------- Payslip ---------- */
+
+.slip-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 16px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.slip-head {
+  background: var(--surface);
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.slip-head-name {
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.slip-head-sub {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.slip-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+
+.slip-row-label {
+  color: var(--muted);
+}
+
+.slip-row-val {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Attendance ---------- */
+
+.att-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 16px;
+  padding-bottom: 12px;
+}
+
+.att-stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 8px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+}
+
+.att-stat-val {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--green);
+  letter-spacing: -0.01em;
+}
+
+.att-stat-label {
+  font-size: 9.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.cal-wrapper {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin: 0 16px 16px;
+  padding: 12px;
+  box-shadow: var(--shadow-sm);
+}
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: default;
+  position: relative;
+  border: 1px solid transparent;
+  color: var(--text);
+}
+
+.cal-day-empty {
+  background: transparent;
+  color: var(--muted);
+  opacity: 0.3;
+}
+
+.cal-day.present {
+  background: rgba(46, 204, 143, 0.14);
+  color: var(--green);
+}
+
+.cal-day.late {
+  background: rgba(245, 166, 35, 0.14);
+  color: var(--orange);
+}
+
+.cal-day.absent {
+  background: rgba(240, 85, 106, 0.13);
+  color: var(--red);
+}
+
+.cal-day.leave {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.cal-day.weekend,
+.cal-day.holiday {
+  background: var(--surface-alt);
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.cal-day.today {
+  border: 1.5px solid var(--primary);
+}
+
+.cal-day-hdr {
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Leave-type selector cards ---------- */
+
+.lt-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.lt-card {
+  position: relative;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--navy);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.1s;
+}
+
+.lt-card:active {
+  transform: scale(0.97);
+}
+
+.lt-card.selected {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+
+.lt-card .lt-name {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+
+.lt-card .lt-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.lt-card .lt-left {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.lt-card .lt-total {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.lt-card .lt-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.lt-card .lt-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+.lt-card .lt-check {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  color: var(--primary);
+  font-size: 15px;
+  display: none;
+}
+
+.lt-card.selected .lt-check {
+  display: block;
+}
+
+/* ---------- Logs ---------- */
+
+.log-wrapper {
+  margin: 0 16px;
+}
+
+.log-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.log-item-header {
+  padding: 12px 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.log-item-header:hover {
+  background: var(--surface-alt);
+}
+
+.log-item-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.log-item-summary {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.log-item-expand-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 14px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.log-item.expanded .log-item-expand-icon {
+  transform: rotate(180deg);
+}
+
+.log-item-details {
+  display: none;
+  background: var(--surface-alt);
+  border-top: 1px solid var(--border);
+  padding: 12px 14px;
+}
+
+.log-item.expanded .log-item-details {
+  display: block;
+}
+
+.log-entry {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.log-entry:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.log-detail {
+  font-size: 11px;
+}
+
+.log-detail-label {
+  color: var(--muted);
+  margin-bottom: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 9px;
+  letter-spacing: 0.05em;
+}
+
+.log-detail-val {
+  font-weight: 600;
+  color: var(--text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Profile ---------- */
+
+.profile-hero {
+  background: transparent;
+  padding: 22px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--primary);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.avatar-overlay:hover {
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.avatar-change-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.avatar-overlay:hover .avatar-change-btn {
+  opacity: 1;
+}
+
+.profile-name {
+  color: var(--text);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.profile-role {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 2px;
+}
+
+.profile-id {
+  color: var(--muted);
+  opacity: 0.8;
+  font-size: 11px;
+  margin-top: 1px;
+}
+
+.profile-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 18px 16px 8px;
+}
+
+.profile-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.profile-item:hover {
+  background: var(--surface-alt);
+}
+
+.profile-item:last-child {
+  border-bottom: none;
+}
+
+.profile-item-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.profile-item-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.profile-item-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.profile-item-val {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+
+.btn-signout {
+  margin: 16px;
+  width: calc(100% - 32px);
+  padding: 13px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-signout:hover {
+  background: var(--red);
+  color: white;
+}
+
+/* ---------- Login ---------- */
+
+.login-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+  background: var(--navy);
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-tagline {
+  color: var(--muted);
+  font-size: 13px;
+  margin-bottom: 40px;
+  letter-spacing: 0.04em;
+}
+
+.login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: var(--shadow-md);
+}
+
+.login-card-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  margin-bottom: 20px;
+}
+
+.login-card-sub {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.login-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--navy);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  margin-bottom: 12px;
+}
+
+.login-input::placeholder {
+  color: var(--muted);
+}
+
+.login-input:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.btn-login {
+  width: 100%;
+  padding: 13px;
+  border-radius: 6px;
+  background: var(--primary);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s, transform 0.1s;
+  margin-top: 8px;
+  border: none;
+}
+
+.btn-login:hover {
+  background: var(--primary-dim);
+}
+
+.btn-login:active {
+  transform: scale(0.98);
+}
+
+.otp-row {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.otp-box {
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: center;
+  background: var(--navy);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.otp-box:focus {
+  border-color: var(--primary);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.login-back {
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  margin-top: 14px;
+  cursor: pointer;
+}
+
+.login-error {
+  color: var(--red);
+  font-size: 12.5px;
+  margin: -4px 0 12px;
+}
+
+.login-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.login-field-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.login-field-row .login-field-label {
+  margin-bottom: 0;
+}
+
+.login-forgot {
+  font-size: 12.5px;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.login-forgot:hover {
+  text-decoration: underline;
+}
+
+.login-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.btn-google {
+  width: 100%;
+  padding: 11px;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  transition: background 0.2s;
+}
+
+.btn-google:hover {
+  background: var(--surface-alt);
+}
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--text);
+  z-index: 999999 !important;
+  border: none;
+  color: var(--navy);
+  padding: 12px 20px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s, transform 0.3s;
+  pointer-events: auto;
+  white-space: nowrap;
+  max-width: 90vw;
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+
+/* ---------- Loader ---------- */
+
+.loader {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---------- GPS modal ---------- */
+
+.gps-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 15, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.gps-modal-overlay.open {
+  display: flex;
+}
+
+.gps-modal {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+}
+
+.gps-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.gps-modal-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.gps-modal-sub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.gps-modal-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface-alt);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.gps-modal-close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.gps-map-wrap {
+  position: relative;
+  width: 100%;
+  height: 320px;
+  background: var(--navy);
+  overflow: hidden;
+}
+
+.gps-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-alt);
+}
+
+.gps-modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+}
+
+.gps-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.gps-stat-label {
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.gps-stat-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.gps-status-pill {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 20px;
+  background: var(--surface-alt);
+  color: var(--muted);
+}
+
+.gps-status-pill.inside {
+  background: rgba(46, 204, 143, 0.15);
+  color: var(--green);
+}
+
+.gps-status-pill.outside {
+  background: rgba(240, 85, 106, 0.15);
+  color: var(--red);
+}
+
+/* ---------- Responsive frame ---------- */
+
+@media (min-width: 430px) {
+  .app {
+    border-radius: 24px;
+    margin: 20px auto;
+    height: calc(100dvh - 40px);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.page {
+  animation: fadeInUp 0.35s ease;
+}
+
+/* ---------- Calendar modal ---------- */
+
+.calendar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 10, 15, 0.6);
+  backdrop-filter: blur(3px);
+  z-index: 1001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeInUp 0.25s ease;
+}
+
+.calendar-overlay.open {
+  display: flex;
+}
+
+.calendar-modal {
+  width: 100%;
+  max-width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: slideInUp 0.3s ease;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.calendar-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.calendar-title:hover {
+  color: var(--primary);
+}
+
+.calendar-nav {
+  display: flex;
+  gap: 8px;
+}
+
+.calendar-nav-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+  font-size: 16px;
+}
+
+.calendar-nav-btn:hover {
+  background: var(--border);
+}
+
+.calendar-body {
+  padding: 12px;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.calendar-weekday {
+  text-align: center;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 8px 0;
+  text-transform: uppercase;
+}
+
+.calendar-dates {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-date {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 9px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.calendar-date:hover:not(.disabled):not(.other-month) {
+  background: var(--primary-soft);
+}
+
+.calendar-date.today {
+  border-color: var(--primary);
+  font-weight: 700;
+}
+
+.calendar-date.selected {
+  background: var(--primary);
+  color: white;
+  border-color: transparent;
+  font-weight: 700;
+}
+
+.calendar-date.range {
+  background: var(--primary-soft);
+}
+
+.calendar-date.other-month {
+  color: var(--muted);
+  opacity: 0.4;
+  cursor: default;
+}
+
+.calendar-date.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.calendar-footer {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.calendar-btn {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.calendar-btn:hover {
+  background: var(--surface-alt);
+}
+
+.calendar-btn.primary {
+  background: var(--primary);
+  color: white;
+  border-color: transparent;
+}
+
+.calendar-btn.primary:hover {
+  background: var(--primary-dim);
+}
+
+.date-input-wrapper {
+  position: relative;
+}
+
+.date-input-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.form-input.date-input {
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+/* ---------- Leaflet ---------- */
+
+.leaflet-container {
+  background: var(--navy) !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.leaflet-tile {
+  filter: brightness(0.9) saturate(1.05);
+}
+
+body.light-mode .leaflet-tile {
+  filter: brightness(1) saturate(1);
+}
+
+.leaflet-popup-content-wrapper {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.leaflet-popup-tip {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.leaflet-control-attribution {
+  background: var(--surface) !important;
+  color: var(--muted) !important;
+}
+
+.leaflet-control-zoom {
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.leaflet-control-zoom-in, .leaflet-control-zoom-out {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.leaflet-control-zoom-in:hover, .leaflet-control-zoom-out:hover {
+  background: var(--surface-alt) !important;
+}
+
+#gps-map-wrap {
+  background: var(--navy) !important;
+}
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="login-screen">
+  <img src="./hivu-logo.png" alt="Hivu" style="height:56px;width:auto;margin-bottom:20px;object-fit:contain">
+  <div class="login-card" id="login-step-email">
+    <div class="login-card-title" style="text-align:center">Sign in to Hivu HR</div>
+    <div class="login-field-label">Email address</div>
+    <input class="login-input" type="email" id="email-input" placeholder="you@company.com" autocomplete="username">
+    <div class="login-field-row">
+      <div class="login-field-label">Password</div>
+      <a class="login-forgot" href="#" onclick="return forgotPassword()">Forgot password?</a>
+    </div>
+    <input class="login-input" type="password" id="password-input" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')emailLogin()">
+    <div class="login-error" id="login-error" style="display:none"></div>
+    <button class="btn-login" id="login-btn" onclick="emailLogin()">Sign in</button>
+    <div class="login-divider"><span>or</span></div>
+    <button class="btn-google" onclick="googleLogin()">
+      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9C16.64 14.2 17.64 11.9 17.64 9.2z"/><path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.66 9c0-.59.1-1.17.29-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/><path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/></svg>
+      Continue with Google
+    </button>
+    <div class="login-back" style="margin-top:12px" onclick="showActivation()">New to Hivu HR? Activate your account</div>
+  </div>
+
+  <!-- ACTIVATION STEP 1: email -->
+  <div class="login-card" id="activation-step-email" style="display:none">
+    <div class="login-card-title" style="text-align:center">Activate your account</div>
+    <div class="login-card-sub">Enter the email your HR admin registered for you. We'll send a one-time code to verify it's you.</div>
+    <div class="login-field-label">Email address</div>
+    <input class="login-input" type="email" id="activation-email-input" placeholder="you@company.com" autocomplete="username">
+    <div class="login-error" id="activation-email-error" style="display:none"></div>
+    <button class="btn-login" id="activation-email-btn" onclick="submitActivationEmail()">Send code</button>
+    <div class="login-back" onclick="showSignIn()">← Back to sign in</div>
+  </div>
+
+  <!-- ACTIVATION STEP 2: OTP -->
+  <div class="login-card" id="activation-step-otp" style="display:none">
+    <div class="login-card-title" style="text-align:center">Enter the code</div>
+    <div class="login-card-sub" id="activation-otp-sub">Code sent to your email</div>
+    <div class="otp-row" id="activation-otp-row">
+      <input class="otp-box" maxlength="1" inputmode="numeric" oninput="otpInput(this,0)">
+      <input class="otp-box" maxlength="1" inputmode="numeric" oninput="otpInput(this,1)">
+      <input class="otp-box" maxlength="1" inputmode="numeric" oninput="otpInput(this,2)">
+      <input class="otp-box" maxlength="1" inputmode="numeric" oninput="otpInput(this,3)">
+      <input class="otp-box" maxlength="1" inputmode="numeric" oninput="otpInput(this,4)">
+      <input class="otp-box" maxlength="1" inputmode="numeric" oninput="otpInput(this,5)">
+    </div>
+    <div class="login-error" id="activation-otp-error" style="display:none"></div>
+    <button class="btn-login" id="activation-otp-btn" onclick="verifyActivationOtp()">Verify</button>
+    <div class="login-back" onclick="showActivation()">← Change email</div>
+  </div>
+
+  <!-- ACTIVATION STEP 3: set password -->
+  <div class="login-card" id="activation-step-password" style="display:none">
+    <div class="login-card-title" style="text-align:center">Create a password</div>
+    <div class="login-card-sub">This is what you'll use to sign in from now on.</div>
+    <div class="login-field-label">New password</div>
+    <input class="login-input" type="password" id="activation-password-input" placeholder="At least 8 characters" autocomplete="new-password">
+    <div class="login-field-label">Confirm password</div>
+    <input class="login-input" type="password" id="activation-password-confirm-input" placeholder="Re-enter password" autocomplete="new-password" onkeydown="if(event.key==='Enter')finishActivation()">
+    <div class="login-error" id="activation-password-error" style="display:none"></div>
+    <button class="btn-login" id="activation-password-btn" onclick="finishActivation()">Finish setup</button>
+  </div>
+
+  <div class="login-tagline" style="margin-top:24px">Employee Portal</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="main-app" class="app" style="display:none">
+  <div class="toast" id="toast"></div>
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <img src="./hivu-logo.png" alt="Hivu" style="height:28px;width:auto;object-fit:contain">
+    <div class="topbar-actions">
+      <button class="notif-btn" id="refresh-btn" onclick="refreshAttendanceData()" title="Refresh data">
+        <i class="ti ti-refresh"></i>
+      </button>
+      <button class="notif-btn" id="notif-btn" onclick="toggleNotifications()">
+        <i class="ti ti-bell"></i>
+        <div class="notif-dot" id="notif-dot" style="display:none"></div>
+      </button>
+      <button class="theme-toggle" id="theme-toggle" onclick="toggleTheme()">
+        <i class="ti ti-sun" id="theme-icon"></i>
+      </button>
+    </div>
+    <div class="notif-panel" id="notif-panel">
+      <div class="notif-panel-title">Notifications</div>
+      <div id="notif-items-container">
+        <div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">No notifications</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN -->
+  <div class="screen" id="screen">
+
+    <!-- HOME PAGE -->
+    <div class="page active" id="pg-home">
+      <div class="hero">
+        <div class="hero-avatar" id="hero-avatar">—</div>
+        <div>
+          <div class="hero-greeting" id="greeting">Good morning</div>
+          <div class="hero-name" id="hero-name">—</div>
+          <div class="hero-role" id="hero-role">—</div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-val" id="stat-present">—</div>
+          <div class="stat-label">Days present</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-absent">—</div>
+          <div class="stat-label">Absences</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="stat-leave">—</div>
+          <div class="stat-label">Leave left</div>
+        </div>
+      </div>
+
+      <!-- CLOCK CARD -->
+      <div class="clock-card">
+        <div class="clock-top">
+          <div class="clock-time" id="clock-time">00:00:00</div>
+          <div class="clock-date-txt" id="clock-date">—</div>
+          <div class="elapsed-time" id="elapsed-time">—</div>
+          <div class="clock-times-row">
+            <div class="clock-time-item">
+              <div class="clock-time-label">Clock In</div>
+              <div class="clock-time-val" id="display-clock-in">—</div>
+            </div>
+            <div class="clock-time-item">
+              <div class="clock-time-label">Clock Out</div>
+              <div class="clock-time-val" id="display-clock-out">—</div>
+            </div>
+          </div>
+          <div class="clock-status-row">
+            <div class="status-pulse" id="status-pulse" style="background:var(--orange)"></div>
+            <span class="clock-status-txt" id="status-txt">Not clocked in</span>
+          </div>
+        </div>
+        <div class="clock-body">
+          <div class="loc-row">
+            <i class="ti ti-map-pin"></i>
+            <div style="flex:1">
+              <div class="loc-label" id="loc-label">Tap Clock In to enable GPS</div>
+              <div class="loc-coords" id="loc-coords">—</div>
+            </div>
+          </div>
+          <button class="btn-clock btn-clock-in" id="clock-btn" onclick="handleClock()">
+            <i class="ti ti-player-play"></i>
+            <span id="clock-btn-txt">Clock In</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- UPCOMING CELEBRATIONS (NEXT 30 DAYS) -->
+      <div class="section">
+        <div class="section-title">Upcoming celebrations</div>
+        <div class="celebrate-card" id="celebrate-container">
+          <div id="celebrate-items"></div>
+        </div>
+      </div>
+
+      <!-- QUICK ACTIONS -->
+      <div class="section">
+        <div class="section-title">Quick actions</div>
+        <div class="quick-grid">
+          <div class="quick-card" onclick="goTo('leave')">
+            <div class="quick-icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="16" y1="2" x2="16" y2="6" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="8" y1="2" x2="8" y2="6" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="3" y1="10" x2="21" y2="10" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div><div class="quick-label">Apply Leave</div><div class="quick-sub">Days left</div></div>
+          </div>
+          <div class="quick-card" onclick="goTo('payslip')">
+            <div class="quick-icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="14 2 14 8 20 8" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div><div class="quick-label">Payslip</div><div class="quick-sub">View salary</div></div>
+          </div>
+          <div class="quick-card" onclick="goTo('attendance')">
+            <div class="quick-icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <circle cx="12" cy="12" r="9" stroke-linecap="round" stroke-linejoin="round"/>
+                <polyline points="12 7 12 12 15 15" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div><div class="quick-label">Attendance</div><div class="quick-sub">This month</div></div>
+          </div>
+          <div class="quick-card" onclick="goTo('profile')">
+            <div class="quick-icon-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="12" cy="7" r="4" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div><div class="quick-label">My Profile</div><div class="quick-sub">Details & docs</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAVE PAGE -->
+    <div class="page" id="pg-leave">
+      <!-- LEAVE TABS -->
+      <div style="padding:12px 16px;overflow-x:auto;border-bottom:1px solid var(--border)">
+        <div class="seg-tabs">
+          <button class="seg-btn active" onclick="switchLeaveTab('apply')">Apply</button>
+          <button class="seg-btn" onclick="switchLeaveTab('history')">History</button>
+          <button class="seg-btn" onclick="switchLeaveTab('holidays')">Holidays</button>
+        </div>
+      </div>
+
+      <!-- APPLY TAB -->
+      <div id="leave-apply-tab" style="display:block">
+        <div class="form-card">
+          <div class="section-title" style="padding:0 0 12px">Apply for leave</div>
+          <div class="form-group">
+            <label class="form-label">Leave type</label>
+            <div class="lt-cards" id="leave-type-cards">
+              <div style="color:var(--muted);font-size:12px;padding:8px 0">Loading leave types...</div>
+            </div>
+            <input type="hidden" id="leave-type" value="">
+          </div>
+          <div class="form-group">
+            <label class="form-label">From date</label>
+            <div class="date-input-wrapper">
+              <input type="text" class="form-input date-input" id="leave-from" data-calendar-field="leave-from" placeholder="Select date" readonly>
+              <i class="ti ti-calendar date-input-icon" data-calendar-field="leave-from"></i>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">To date</label>
+            <div class="date-input-wrapper">
+              <input type="text" class="form-input date-input" id="leave-to" data-calendar-field="leave-to" placeholder="Select date" readonly>
+              <i class="ti ti-calendar date-input-icon" data-calendar-field="leave-to"></i>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Days</label>
+            <div style="font-size:14px;font-weight:600;color:var(--primary-light);padding:8px 0" id="leave-days">0</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Reason</label>
+            <textarea class="form-textarea" id="leave-reason" rows="3" placeholder="Reason..."></textarea>
+          </div>
+          <button class="btn-submit" onclick="submitLeave()">Submit Request</button>
+        </div>
+      </div>
+
+      <!-- HISTORY TAB -->
+      <div id="leave-history-tab" style="display:none">
+        <div class="section-title" style="padding:16px 16px 0">Leave applications</div>
+        <div class="log-wrapper" id="leave-history-container">
+          <div style="text-align:center;color:var(--muted);padding:20px;font-size:12px">Loading...</div>
+        </div>
+      </div>
+
+      <!-- HOLIDAYS TAB -->
+      <div id="leave-holidays-tab" style="display:none">
+        <div class="section-title" style="padding:16px 16px 0">Company holidays</div>
+        <div id="holiday-list-container" style="padding:16px">
+          <div style="text-align:center;color:var(--muted);font-size:12px">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAYSLIP PAGE -->
+    <div class="page" id="pg-payslip">
+      <div class="month-picker" id="month-picker"></div>
+      <div class="slip-card">
+        <div class="slip-head">
+          <div class="slip-head-name" id="slip-name">—</div>
+          <div class="slip-head-sub" id="slip-sub">—</div>
+        </div>
+        <div id="slip-attendance" style="padding:10px 14px;font-size:11px;color:var(--muted);background:rgba(0,102,255,0.05);display:none"></div>
+        <div style="padding:12px 14px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;background:var(--navy)">Earnings</div>
+        <div class="slip-row">
+          <span class="slip-row-label">Basic salary</span>
+          <span class="slip-row-val" id="slip-basic">₹—</span>
+        </div>
+        <div class="slip-row">
+          <span class="slip-row-label">HRA</span>
+          <span class="slip-row-val" id="slip-hra">₹—</span>
+        </div>
+        <div class="slip-row">
+          <span class="slip-row-label">DA</span>
+          <span class="slip-row-val" id="slip-da">₹—</span>
+        </div>
+        <div class="slip-row">
+          <span class="slip-row-label">Other allowances</span>
+          <span class="slip-row-val" id="slip-allowances">₹—</span>
+        </div>
+        <div class="slip-row" style="border-bottom:1px solid rgba(0,102,255,0.1);font-weight:700">
+          <span class="slip-row-label">Gross</span>
+          <span class="slip-row-val" id="slip-gross">₹—</span>
+        </div>
+        <div style="padding:12px 14px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;background:var(--navy)">Deductions</div>
+        <div class="slip-row">
+          <span class="slip-row-label">PF Deduction</span>
+          <span class="slip-row-val" id="slip-pf" style="color:var(--red)">₹—</span>
+        </div>
+        <div class="slip-row">
+          <span class="slip-row-label">ESI</span>
+          <span class="slip-row-val" id="slip-esi" style="color:var(--red)">₹—</span>
+        </div>
+        <div class="slip-row">
+          <span class="slip-row-label">Insurance</span>
+          <span class="slip-row-val" id="slip-insurance" style="color:var(--red)">₹—</span>
+        </div>
+        <div class="slip-row">
+          <span class="slip-row-label">Attendance penalty</span>
+          <span class="slip-row-val" id="slip-penalty" style="color:var(--red)">₹—</span>
+        </div>
+        <div class="slip-row" style="border-bottom:2px solid rgba(0,102,255,0.2);font-weight:700">
+          <span class="slip-row-label">Total deductions</span>
+          <span class="slip-row-val" id="slip-total-ded" style="color:var(--red)">₹—</span>
+        </div>
+        <div style="padding:12px 14px;background:linear-gradient(135deg,var(--primary),var(--primary-light));color:white;font-size:13px;font-weight:700;display:flex;justify-content:space-between">
+          <span>Net salary</span>
+          <span id="slip-net">₹—</span>
+        </div>
+      </div>
+
+      <div style="padding:0 16px;margin-top:14px">
+        <button class="btn-submit" onclick="downloadPayslipPDF()"><i class="ti ti-download"></i> Download PDF</button>
+      </div>
+
+      <div class="slip-card" id="slip-penalty-card" style="display:none;margin-top:14px">
+        <div style="padding:12px 14px;font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;background:var(--navy)">Penalty breakdown</div>
+        <div id="slip-penalty-breakdown"></div>
+      </div>
+
+      <div id="slip-penalty-rules" style="display:none;margin:14px 16px 20px;padding:12px 14px;border-radius:12px;background:rgba(255,165,0,0.06);border:1px solid rgba(255,165,0,0.15);font-size:11px;color:var(--muted);line-height:1.8"></div>
+    </div>
+
+    <!-- ATTENDANCE PAGE -->
+    <div class="page" id="pg-attendance">
+      <div class="att-stats">
+        <div class="att-stat">
+          <div class="att-stat-val" id="att-present">—</div>
+          <div class="att-stat-label">Present</div>
+        </div>
+        <div class="att-stat">
+          <div class="att-stat-val" style="color:var(--red)" id="att-absent">—</div>
+          <div class="att-stat-label">Absent</div>
+        </div>
+        <div class="att-stat">
+          <div class="att-stat-val" style="color:var(--orange)" id="att-late">—</div>
+          <div class="att-stat-label">Late</div>
+        </div>
+        <div class="att-stat">
+          <div class="att-stat-val" style="color:var(--primary)" id="att-leave">—</div>
+          <div class="att-stat-label">Leave</div>
+        </div>
+      </div>
+
+      <div class="cal-wrapper">
+        <div class="cal-grid" id="cal-container"></div>
+      </div>
+
+
+      <div style="padding:0 16px">
+        <div class="section-title">Recent logs</div>
+      </div>
+      <div class="log-wrapper">
+        <div id="att-log-list"></div>
+      </div>
+    </div>
+
+    <!-- PROFILE PAGE -->
+    <div class="page" id="pg-profile">
+      <div class="profile-hero">
+        <div class="avatar-wrapper">
+          <div class="avatar" id="profile-avatar">—</div>
+          <div class="avatar-overlay">
+            <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="uploadProfilePhoto(event)">
+            <button class="avatar-change-btn" onclick="changeProfilePhoto()">
+              <i class="ti ti-camera"></i>
+            </button>
+          </div>
+        </div>
+        <div>
+          <div class="profile-name" id="profile-name">—</div>
+          <div class="profile-role" id="profile-role">—</div>
+          <div class="profile-id" id="profile-id">—</div>
+        </div>
+      </div>
+      <div class="profile-section-title">Personal details</div>
+      <div>
+        <div class="profile-item">
+          <div class="profile-item-left">
+            <div class="profile-item-icon">
+              <i class="ti ti-id-badge"></i>
+            </div>
+            <div>
+              <div class="profile-item-label">Employee ID</div>
+              <div class="profile-item-val" id="profile-emp-id">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-item-left">
+            <div class="profile-item-icon">
+              <i class="ti ti-mail"></i>
+            </div>
+            <div>
+              <div class="profile-item-label">Email</div>
+              <div class="profile-item-val" id="profile-email">—</div>
+            </div>
+          </div>
+        </div>
+        <div class="profile-item">
+          <div class="profile-item-left">
+            <div class="profile-item-icon">
+              <i class="ti ti-calendar"></i>
+            </div>
+            <div>
+              <div class="profile-item-label">Joined Company</div>
+              <div class="profile-item-val" id="profile-anni">—</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-signout" onclick="signOut()"><i class="ti ti-logout"></i> Sign Out</button>
+    </div>
+
+  </div><!-- /screen -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" id="nav-home" onclick="goTo('home')">
+      <div class="nav-icon-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <span>Home</span>
+    </button>
+    <button class="nav-item" id="nav-leave" onclick="goTo('leave')">
+      <div class="nav-icon-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="3" y1="9" x2="21" y2="9"/>
+        </svg>
+      </div>
+      <span>Leave</span>
+    </button>
+    <button class="nav-item" id="nav-payslip" onclick="goTo('payslip')">
+      <div class="nav-icon-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+      <span>Payslip</span>
+    </button>
+    <button class="nav-item" id="nav-attendance" onclick="goTo('attendance')">
+      <div class="nav-icon-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/>
+          <polyline points="12 7 12 12 15.5 15.5"/>
+        </svg>
+      </div>
+      <span>Attendance</span>
+    </button>
+    <button class="nav-item" id="nav-profile" onclick="goTo('profile')">
+      <div class="nav-icon-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </div>
+      <span>Profile</span>
+    </button>
+  </nav>
+</div>
+
+<!-- GPS MAP MODAL -->
+<div id="gps-modal-overlay" class="gps-modal-overlay">
+  <div class="gps-modal">
+    <div class="gps-modal-head">
+      <div>
+        <div class="gps-modal-title">Clock-in zone</div>
+        <div class="gps-modal-sub" id="gps-modal-sub">Locating...</div>
+      </div>
+      <button class="gps-modal-close" onclick="closeGpsModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="gps-map-wrap" id="gps-map-wrap">
+      <div id="leaflet-map" style="width:100%;height:100%;border-radius:0;background:var(--navy)"></div>
+      <div class="gps-loading" id="gps-loading"><div class="loader" style="width:22px;height:22px;border-width:3px"></div></div>
+    </div>
+    <div class="gps-modal-footer">
+      <div class="gps-stat">
+        <span class="gps-stat-label">Allowed radius</span>
+        <span class="gps-stat-val" id="gps-radius-val">—</span>
+      </div>
+      <div class="gps-stat">
+        <span class="gps-stat-label">Your distance</span>
+        <span class="gps-stat-val" id="gps-dist-val">—</span>
+      </div>
+      <div class="gps-status-pill" id="gps-status-pill">Checking…</div>
+    </div>
+    <button class="btn-submit" style="margin:10px;width:calc(100% - 20px)" id="clock-confirm-btn" onclick="confirmClock()">Confirm Clock In</button>
+  </div>
+</div>
+
+<!-- CUSTOM PREMIUM CALENDAR MODAL -->
+<div id="calendar-overlay" class="calendar-overlay">
+  <div class="calendar-modal">
+    <div class="calendar-header">
+      <div class="calendar-title" onclick="toggleMonthPicker()">
+        <span id="calendar-month-year">August 2026</span>
+        <i class="ti ti-chevron-down" style="font-size:14px"></i>
+      </div>
+      <div class="calendar-nav">
+        <button class="calendar-nav-btn" onclick="calendarPrevMonth()"><i class="ti ti-chevron-left"></i></button>
+        <button class="calendar-nav-btn" onclick="calendarNextMonth()"><i class="ti ti-chevron-right"></i></button>
+      </div>
+    </div>
+    <div class="calendar-body">
+      <div class="calendar-weekdays">
+        <div class="calendar-weekday">Su</div>
+        <div class="calendar-weekday">Mo</div>
+        <div class="calendar-weekday">Tu</div>
+        <div class="calendar-weekday">We</div>
+        <div class="calendar-weekday">Th</div>
+        <div class="calendar-weekday">Fr</div>
+        <div class="calendar-weekday">Sa</div>
+      </div>
+      <div class="calendar-dates" id="calendar-dates"></div>
+    </div>
+    <div class="calendar-footer">
+      <button class="calendar-btn" onclick="closeCalendar()">Cancel</button>
+      <button class="calendar-btn primary" onclick="confirmCalendarDate()">Select</button>
+    </div>
+  </div>
+</div>
+
+<!-- ATTENDANCE REGULARIZATION MODAL -->
+<div id="regularization-modal" class="gps-modal-overlay">
+  <div class="gps-modal" style="max-width:400px">
+    <div class="gps-modal-head">
+      <div>
+        <div class="gps-modal-title">Request Regularization</div>
+        <div class="gps-modal-sub">Submit a regularization request for this day</div>
+      </div>
+      <button class="gps-modal-close" onclick="closeRegularizationModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div style="padding:16px">
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input type="text" class="form-input" id="reg-date" readonly style="background:var(--surface);cursor:not-allowed">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Reason</label>
+        <textarea class="form-textarea" id="reg-reason" rows="3" placeholder="Explain why you need regularization..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Request Type</label>
+        <select class="form-select" id="reg-type">
+          <option value="full_day">Full Day Regularization</option>
+          <option value="clock_in">Clock In Missing</option>
+          <option value="clock_out">Clock Out Missing</option>
+        </select>
+      </div>
+      <button class="btn-submit" style="width:100%;margin-top:12px" onclick="submitRegularization()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./photo-upload.js"></script>
+<script src="./native-bridge.js"></script>
+<script>
+window.HIVU_CONFIG = {
+  supabaseUrl: "https://kaiiffxgnpjsgswuhukj.supabase.co",
+  supabaseKey: "sb_publishable_C-_YpbQRpxvU3l1pcUjIHg_rmDPGRnr",
+  office: {
+    lat: 28.7041,
+    lng: 77.1025,
+    radius: 500
+  }
+};
+</script>
+<script>
+const STATE = {
+  user: null,
+  clockedIn: false,
+  clockInTime: null,
+  clockInCoords: null,
+  displayClockInTime: null,
+  displayClockOutTime: null,
+  currentPage: 'home',
+  isDarkMode: true
+};
+
+let supabaseClient;
+
+// Local-timezone date string (YYYY-MM-DD). NEVER use toISOString() for dates —
+// it shifts to UTC and moves the date back a day in IST.
+function toLocalDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// Parse "04:12:44 pm" / "16:12" / "09:30:00" into minutes since midnight (null if unparseable)
+function parseTimeToMinutes(str) {
+  if (!str) return null;
+  const m = String(str).trim().match(/(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?/i);
+  if (!m) return null;
+  let h = parseInt(m[1]);
+  const min = parseInt(m[2]);
+  const s = parseInt(m[3] || '0');
+  const ap = (m[4] || '').toLowerCase();
+  if (ap === 'pm' && h !== 12) h += 12;
+  if (ap === 'am' && h === 12) h = 0;
+  return h * 60 + min + s / 60;
+}
+
+async function initSupabase() {
+  if (!window.HIVU_CONFIG || !HIVU_CONFIG.supabaseUrl || !HIVU_CONFIG.supabaseKey) {
+    console.error('Supabase credentials not configured');
+    showToast('Configuration error');
+    return false;
+  }
+
+  const { createClient } = window.supabase;
+  supabaseClient = createClient(HIVU_CONFIG.supabaseUrl, HIVU_CONFIG.supabaseKey);
+  console.log('✓ Supabase initialized');
+  return true;
+}
+
+async function forgotPassword() {
+  const email = document.getElementById('email-input').value.trim().toLowerCase();
+  if (!email) {
+    showToast('Email address darj karein');
+    return false;
+  }
+
+  const loginBtn = document.getElementById('login-btn');
+  const originalText = loginBtn.textContent;
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Sending...';
+
+  try {
+    // Pehle check karo ki email employees mein hai ya nahi
+    const { data, error: queryError } = await supabaseClient
+      .from('employees')
+      .select('email')
+      .eq('email', email)
+      .single();
+
+    if (queryError || !data) {
+      showToast('Ye email hamare database mein registered nahi hai. HR admin se contact karein.');
+      return false;
+    }
+
+    // Email found — ab reset link bhejo
+    await supabaseClient.auth.resetPasswordForEmail(email);
+    showToast('✅ Password reset link aapke email par bhej di gayi. Inbox check karein (2-3 minute lagenge).');
+  } catch (err) {
+    if (err.message && err.message.includes('No rows')) {
+      showToast('Ye email registered nahi hai.');
+    } else {
+      showToast('Error: ' + (err.message || 'Kuch masla aya'));
+    }
+  } finally {
+    loginBtn.disabled = false;
+    loginBtn.textContent = originalText;
+  }
+  return false;
+}
+
+async function googleLogin() {
+  // Native Android: in-app Google account picker (no Chrome redirect),
+  // then exchange the ID token with Supabase directly.
+  if (window.CapNative && CapNative.isNative) {
+    try {
+      const idToken = await CapNative.googleNativeSignIn();
+      if (!idToken) return; // user cancelled
+
+      const { error } = await supabaseClient.auth.signInWithIdToken({
+        provider: 'google',
+        token: idToken
+      });
+      if (error) { showToast('Error: ' + error.message); return; }
+
+      try {
+        await enterAppForCurrentUser();
+      } catch (err) {
+        await supabaseClient.auth.signOut();
+        showToast(err.message || 'No employee record linked to this Google account.');
+      }
+    } catch (err) {
+      showToast('Google sign-in failed');
+      console.error(err);
+    }
+    return;
+  }
+
+  // Web: standard OAuth redirect flow
+  try {
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + window.location.pathname }
+    });
+    if (error) showToast('Error: ' + error.message);
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  }
+}
+
+async function emailLogin() {
+  const email = document.getElementById('email-input').value.trim().toLowerCase();
+  const password = document.getElementById('password-input').value;
+  const errorEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  errorEl.style.display = 'none';
+
+  if (!email || !password) {
+    errorEl.textContent = 'Enter your email and password';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+
+  try {
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      errorEl.textContent = 'Invalid email or password';
+      errorEl.style.display = 'block';
+      return;
+    }
+    await enterAppForCurrentUser();
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign in';
+  }
+}
+
+// Shared by both the normal password login and the first-time activation
+// flow: once Supabase Auth has a session, look up which employee row is
+// linked to it (RLS + auth_company_id() only allow this once employees.
+// auth_user_id = auth.uid()) and enter the app.
+async function enterAppForCurrentUser() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  const { data, error } = await supabaseClient
+    .from('employees')
+    .select('emp_id')
+    .eq('auth_user_id', user.id)
+    .single();
+
+  if (error || !data) {
+    throw new Error('No employee record is linked to this account. Contact your HR admin.');
+  }
+
+  localStorage.setItem('auth_emp_id', data.emp_id);
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+
+  await loadUserData();
+  startClock();
+  setupPullToRefresh();
+  initNativeFeatures(data.emp_id);
+}
+
+// Android-only setup: hardware back button + push notification registration.
+// No-ops in a normal browser.
+let nativeFeaturesReady = false;
+function initNativeFeatures(empId) {
+  if (nativeFeaturesReady || !window.CapNative || !CapNative.isNative) return;
+  nativeFeaturesReady = true;
+
+  CapNative.initBackButton();
+
+  CapNative.initPushNotifications(async (token) => {
+    try {
+      await supabaseClient
+        .from('employees')
+        .update({ push_token: token })
+        .eq('emp_id', empId);
+    } catch (err) {
+      // Column may not exist yet in Supabase — safe to ignore until backend is ready
+      console.warn('Could not save push token:', err);
+    }
+  });
+}
+
+/* ---------- Activation (first-time sign-up via email OTP) ---------- */
+
+let activationEmail = '';
+
+function showSignIn() {
+  document.getElementById('login-step-email').style.display = 'block';
+  document.getElementById('activation-step-email').style.display = 'none';
+  document.getElementById('activation-step-otp').style.display = 'none';
+  document.getElementById('activation-step-password').style.display = 'none';
+}
+
+function showActivation() {
+  document.getElementById('login-step-email').style.display = 'none';
+  document.getElementById('activation-step-otp').style.display = 'none';
+  document.getElementById('activation-step-password').style.display = 'none';
+  document.getElementById('activation-step-email').style.display = 'block';
+}
+
+function otpInput(el, idx) {
+  if (el.value && idx < 5) {
+    el.closest('.otp-row').querySelectorAll('.otp-box')[idx + 1].focus();
+  }
+}
+
+async function submitActivationEmail() {
+  const email = document.getElementById('activation-email-input').value.trim().toLowerCase();
+  const errorEl = document.getElementById('activation-email-error');
+  const btn = document.getElementById('activation-email-btn');
+  errorEl.style.display = 'none';
+
+  if (!email) {
+    errorEl.textContent = 'Enter your email';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+
+  try {
+    const { data: exists, error } = await supabaseClient.rpc('employee_email_registered', { p_email: email });
+    if (error || !exists) {
+      errorEl.textContent = 'Email not found, or already activated. Contact your HR admin.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const { error: otpError } = await supabaseClient.auth.signInWithOtp({ email });
+    if (otpError) {
+      errorEl.textContent = otpError.message;
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    activationEmail = email;
+    document.getElementById('activation-otp-sub').textContent = 'Code sent to ' + email;
+    document.getElementById('activation-step-email').style.display = 'none';
+    document.getElementById('activation-step-otp').style.display = 'block';
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send code';
+  }
+}
+
+async function verifyActivationOtp() {
+  const otp = Array.from(document.querySelectorAll('#activation-otp-row .otp-box')).map(e => e.value).join('');
+  const errorEl = document.getElementById('activation-otp-error');
+  const btn = document.getElementById('activation-otp-btn');
+  errorEl.style.display = 'none';
+
+  if (otp.length !== 6) {
+    errorEl.textContent = 'Enter the 6-digit code';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Verifying…';
+
+  try {
+    const { error } = await supabaseClient.auth.verifyOtp({ email: activationEmail, token: otp, type: 'email' });
+    if (error) {
+      errorEl.textContent = 'Invalid or expired code';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    document.getElementById('activation-step-otp').style.display = 'none';
+    document.getElementById('activation-step-password').style.display = 'block';
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Verify';
+  }
+}
+
+async function finishActivation() {
+  const pw = document.getElementById('activation-password-input').value;
+  const pw2 = document.getElementById('activation-password-confirm-input').value;
+  const errorEl = document.getElementById('activation-password-error');
+  const btn = document.getElementById('activation-password-btn');
+  errorEl.style.display = 'none';
+
+  if (pw.length < 8) {
+    errorEl.textContent = 'Password must be at least 8 characters';
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (pw !== pw2) {
+    errorEl.textContent = 'Passwords do not match';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Finishing…';
+
+  try {
+    const { error } = await supabaseClient.auth.updateUser({ password: pw });
+    if (error) {
+      errorEl.textContent = error.message;
+      errorEl.style.display = 'block';
+      return;
+    }
+    await enterAppForCurrentUser();
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Finish setup';
+  }
+}
+
+async function loadUserData() {
+  const empId = localStorage.getItem('auth_emp_id');
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('employees')
+      .select('*')
+      .eq('emp_id', empId)
+      .single();
+
+    if (error || !data) {
+      showToast('Error loading user data');
+      return;
+    }
+
+    STATE.user = data;
+    await updateUIWithUserData(data);
+    loadAttendanceData();
+    loadEmployeeNotifications();
+    await loadCelebrations();
+    await restoreClockState();
+    // handleMissingClockOut();  // TODO: Fix RLS policy for this query
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function restoreClockState() {
+  const empId = localStorage.getItem('auth_emp_id');
+  const today = toLocalDateStr(new Date());
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('attendance_logs')
+      .select('*')
+      .eq('emp_id', empId)
+      .eq('date', today)
+      .order('created_at', { ascending: false });
+
+    if (data && data.length > 0) {
+      const latestRecord = data[0];
+
+      document.getElementById('display-clock-in').textContent = latestRecord.clock_in_time || '—';
+      document.getElementById('display-clock-out').textContent = latestRecord.clock_out_time || '—';
+
+      if (latestRecord.clock_in_time && !latestRecord.clock_out_time) {
+        STATE.clockedIn = true;
+        STATE.displayClockInTime = latestRecord.clock_in_time;
+
+        const inTime = new Date();
+        const timeMatch = latestRecord.clock_in_time.match(/(\d{1,2}):(\d{2}):(\d{2})\s*(am|pm)/i);
+        if (timeMatch) {
+          let [, h, m, s, ampm] = timeMatch;
+          h = parseInt(h);
+          m = parseInt(m);
+          s = parseInt(s);
+          // Convert 12-hour to 24-hour
+          if (ampm.toLowerCase() === 'pm' && h !== 12) h += 12;
+          if (ampm.toLowerCase() === 'am' && h === 12) h = 0;
+          inTime.setHours(h, m, s);
+          STATE.clockInTime = inTime.getTime();
+        }
+
+        document.getElementById('status-pulse').style.background = 'var(--primary-light)';
+        document.getElementById('status-pulse').classList.add('pulse-animate');
+        document.getElementById('status-txt').textContent = 'Clocked in ✓';
+
+        document.getElementById('clock-btn').className = 'btn-clock btn-clock-out';
+        document.getElementById('clock-btn').innerHTML = '<i class="ti ti-player-stop"></i> <span id="clock-btn-txt">Clock Out</span>';
+
+        document.getElementById('loc-label').textContent = 'Location verified ✓';
+        const coordsEl = document.getElementById('loc-coords');
+        if (latestRecord.clock_in_lat && latestRecord.clock_in_lng && coordsEl) {
+          const lat = parseFloat(latestRecord.clock_in_lat);
+          const lng = parseFloat(latestRecord.clock_in_lng);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            coordsEl.textContent = `${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`;
+          }
+        }
+      } else if (latestRecord.clock_in_time && latestRecord.clock_out_time) {
+        STATE.displayClockInTime = latestRecord.clock_in_time;
+        STATE.displayClockOutTime = latestRecord.clock_out_time;
+
+        // Show the completed-day state instead of "Not clocked in"
+        const hoursTxt = latestRecord.hours_worked || '';
+        const elapsedEl = document.getElementById('elapsed-time');
+        if (elapsedEl && hoursTxt) elapsedEl.textContent = hoursTxt;
+        document.getElementById('status-pulse').style.background = 'var(--orange)';
+        document.getElementById('status-pulse').classList.remove('pulse-animate');
+        document.getElementById('status-txt').textContent = hoursTxt ? `Clocked out · ${hoursTxt}` : 'Clocked out';
+      }
+    }
+  } catch (err) {
+    console.log('No active clock-in session');
+  }
+}
+
+async function handleMissingClockOut() {
+  const empId = localStorage.getItem('auth_emp_id');
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 86400000 - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+  try {
+    const { data } = await supabaseClient
+      .from('attendance_logs')
+      .select('id')
+      .eq('emp_id', empId)
+      .eq('date', yesterday)
+      .single();
+
+    if (data) {
+      const { error } = await supabaseClient
+        .from('attendance_logs')
+        .update({
+          clock_out_time: 'missing',
+          status: 'Missing Clock Out'
+        })
+        .eq('id', data.id);
+
+      if (error) throw error;
+      console.log('Auto clock-out at midnight recorded');
+    }
+  } catch (err) {
+    console.log('No missing clock-out to handle');
+  }
+}
+
+async function updateUIWithUserData(user) {
+  const hour = new Date().getHours();
+  let greeting = 'Good morning';
+  if (hour >= 12 && hour < 17) greeting = 'Good afternoon';
+  if (hour >= 17) greeting = 'Good evening';
+
+  document.getElementById('greeting').textContent = greeting;
+  document.getElementById('hero-name').textContent = user.name || '—';
+  document.getElementById('hero-role').textContent =
+    `${user.designation || '—'} · ${user.department || '—'} · ${user.emp_id}`;
+
+  document.getElementById('profile-name').textContent = user.name || '—';
+  document.getElementById('profile-role').textContent =
+    `${user.designation || '—'} · ${user.department || '—'}`;
+  document.getElementById('profile-emp-id').textContent = user.emp_id;
+  document.getElementById('profile-email').textContent = user.email || '—';
+
+  const avatarEl = document.getElementById('profile-avatar');
+  if (user.avatar) {
+    avatarEl.style.backgroundImage = `url(${user.avatar})`;
+    avatarEl.textContent = '';
+  } else {
+    avatarEl.textContent = (user.name || '?').split(' ').map(n => n[0]).join('');
+  }
+
+  // Home hero avatar — same photo/initials as profile
+  const heroAvatarEl = document.getElementById('hero-avatar');
+  if (heroAvatarEl) {
+    if (user.avatar) {
+      heroAvatarEl.style.backgroundImage = `url(${user.avatar})`;
+      heroAvatarEl.textContent = '';
+    } else {
+      heroAvatarEl.textContent = (user.name || '?').split(' ').map(n => n[0]).join('');
+    }
+  }
+
+  if (user.work_anniversary) {
+    const joined = new Date(user.work_anniversary);
+    const joinedStr = joined.toLocaleDateString('en-IN', {year:'numeric', month:'short', day:'numeric'});
+    // Tenure calculate karo (kitne saal/mahine ho gaye company mein)
+    const now = new Date();
+    let months = (now.getFullYear() - joined.getFullYear()) * 12 + (now.getMonth() - joined.getMonth());
+    if (now.getDate() < joined.getDate()) months--;
+    months = Math.max(0, months);
+    const yrs = Math.floor(months / 12), mos = months % 12;
+    const tenure = yrs > 0 ? `${yrs} yr${yrs > 1 ? 's' : ''}${mos ? ' ' + mos + ' mo' : ''}` : (mos > 0 ? `${mos} mo` : 'New joiner');
+    document.getElementById('profile-anni').textContent = `${joinedStr} • ${tenure}`;
+  }
+
+  document.getElementById('slip-name').textContent = user.name || '—';
+  document.getElementById('slip-sub').textContent =
+    `${user.emp_id} · ${user.designation || '—'}`;
+
+  const profileIdEl = document.getElementById('profile-id');
+  if (profileIdEl) profileIdEl.textContent = user.emp_id || '—';
+}
+
+async function loadCelebrations() {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  try {
+    const { data } = await supabaseClient
+      .from('employees')
+      .select('emp_id, name, dob, work_anniversary, avatar');
+
+    if (data && data.length > 0) {
+      const celebrations = [];
+
+      data.forEach(emp => {
+        const initials = (emp.name || '?').split(' ').map(n => n[0]).join('');
+
+        if (emp.dob) {
+          const bdayMonth = emp.dob.slice(5, 7);
+          const bdayDay = emp.dob.slice(8, 10);
+          const bdayMonthDay = bdayMonth + '-' + bdayDay;
+          if (bdayMonthDay >= currentMonthDay) {
+            const bdayDate = new Date(currentYear, parseInt(bdayMonth) - 1, parseInt(bdayDay));
+            celebrations.push({
+              name: emp.name,
+              type: 'Birthday',
+              icon: '<i class="ti ti-cake"></i>',
+              date: bdayDate,
+              dateStr: bdayDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+              initials: initials,
+              avatar: emp.avatar
+            });
+          }
+        }
+
+        if (emp.work_anniversary) {
+          // work_anniversary = company join karne ki date;
+          // isse khud calculate karo ki is saal kaunsi anniversary banegi
+          const joinYear = parseInt(emp.work_anniversary.slice(0, 4));
+          const annivMonth = emp.work_anniversary.slice(5, 7);
+          const annivDay = emp.work_anniversary.slice(8, 10);
+          const annivMonthDay = annivMonth + '-' + annivDay;
+          const yearsCompleting = currentYear - joinYear;
+          // Isi saal join kiya hai to abhi koi anniversary nahi banti
+          if (annivMonthDay >= currentMonthDay && yearsCompleting >= 1) {
+            const annivDate = new Date(currentYear, parseInt(annivMonth) - 1, parseInt(annivDay));
+            const ord = (n) => n + (n % 10 === 1 && n % 100 !== 11 ? 'st' : n % 10 === 2 && n % 100 !== 12 ? 'nd' : n % 10 === 3 && n % 100 !== 13 ? 'rd' : 'th');
+            celebrations.push({
+              name: emp.name,
+              type: `${ord(yearsCompleting)} Work Anniv.`,
+              icon: '<i class="ti ti-award"></i>',
+              date: annivDate,
+              dateStr: annivDate.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }),
+              initials: initials,
+              avatar: emp.avatar
+            });
+          }
+        }
+      });
+
+      celebrations.sort((a, b) => a.date - b.date);
+
+      if (celebrations.length > 0) {
+        const html = celebrations.map(cel => {
+          return `
+            <div class="celebrate-item">
+              <div class="celebrate-emoji">${cel.icon}</div>
+              <div class="celebrate-avatar">${cel.initials}</div>
+              <div class="celebrate-name">${cel.name}</div>
+              <div class="celebrate-sub">${cel.type}</div>
+              <div style="font-size:10px;color:var(--primary-light);margin-top:2px">${cel.dateStr}</div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('celebrate-items').innerHTML = html;
+      } else {
+        document.getElementById('celebrate-items').innerHTML =
+          '<div style="text-align:center;color:var(--muted);padding:20px;font-size:12px;width:100%">No upcoming celebrations</div>';
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// Higher number wins when a date has multiple records
+const STATUS_PRIORITY = { 'Leave': 5, 'Holiday': 5, 'Present': 4, 'Late': 4, 'Short Day': 4, 'Missing Clock Out': 3, 'Absent': 1 };
+
+async function loadAttendanceData(skipAutoMark) {
+  const empId = localStorage.getItem('auth_emp_id');
+  const now = new Date();
+  const monthStart = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), 1));
+  const monthEnd = toLocalDateStr(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+
+  try {
+    const [logsRes, holidaysRes, weekendRes, leavesRes] = await Promise.all([
+      supabaseClient.from('attendance_logs').select('*')
+        .eq('emp_id', empId).gte('date', monthStart).lte('date', monthEnd),
+      supabaseClient.from('company_holidays').select('date')
+        .gte('date', monthStart).lte('date', monthEnd),
+      supabaseClient.from('weekend_settings').select('*').limit(1).single(),
+      supabaseClient.from('leave_requests').select('from_date, to_date')
+        .eq('emp_id', empId).eq('status', 'Approved')
+        .lte('from_date', monthEnd).gte('to_date', monthStart)
+    ]);
+
+    const data = logsRes.data || [];
+    const holidaySet = new Set((holidaysRes.data || []).map(h => h.date));
+    const ws = weekendRes.data || {};
+    const offDays = [ws.sunday_off, ws.monday_off, ws.tuesday_off, ws.wednesday_off,
+                     ws.thursday_off, ws.friday_off, ws.saturday_off]; // index = getDay()
+
+    // Expand approved leaves into a set of dates
+    const leaveSet = new Set();
+    (leavesRes.data || []).forEach(l => {
+      const from = new Date(l.from_date + 'T00:00:00');
+      const to = new Date(l.to_date + 'T00:00:00');
+      for (let d = new Date(from); d <= to; d.setDate(d.getDate() + 1)) {
+        leaveSet.add(toLocalDateStr(d));
+      }
+    });
+
+    // Best status per date from logs (highest priority wins)
+    const dateMap = {};
+    data.forEach(record => {
+      if (!record.date) return;
+      const status = record.status || 'Present';
+      const current = dateMap[record.date];
+      if (!current || (STATUS_PRIORITY[status] || 0) > (STATUS_PRIORITY[current] || 0)) {
+        dateMap[record.date] = status;
+      }
+    });
+
+    // Final per-day status for calendar & stats: leave > holiday > weekend > logs
+    const dayStatus = {};
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth(), i);
+      const dateStr = toLocalDateStr(d);
+      if (leaveSet.has(dateStr)) dayStatus[dateStr] = 'Leave';
+      else if (holidaySet.has(dateStr)) dayStatus[dateStr] = 'Holiday';
+      else if (offDays[d.getDay()]) dayStatus[dateStr] = 'Weekend';
+      else if (dateMap[dateStr]) dayStatus[dateStr] = dateMap[dateStr];
+    }
+
+    const stats = {present: 0, absent: 0, late: 0, leave: 0};
+    Object.values(dayStatus).forEach(status => {
+      if (status === 'Present' || status === 'Short Day') stats.present++;
+      else if (status === 'Late') stats.late++;
+      else if (status === 'Absent') stats.absent++;
+      else if (status === 'Leave') stats.leave++;
+    });
+
+    document.getElementById('stat-present').textContent = stats.present;
+    document.getElementById('stat-absent').textContent = stats.absent;
+    document.getElementById('att-present').textContent = stats.present;
+    document.getElementById('att-absent').textContent = stats.absent;
+    document.getElementById('att-late').textContent = stats.late;
+    document.getElementById('att-leave').textContent = stats.leave;
+
+    loadLeaveLeftStat();
+
+    renderCalendar(dayStatus);
+    renderAttendanceLogs(data);
+
+    if (!skipAutoMark) {
+      const changed = await calculateMissingAttendance(dateMap, dayStatus, empId);
+      if (changed) await loadAttendanceData(true); // re-render once, never loops
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+async function loadLeaveLeftStat() {
+  try {
+    const empId = localStorage.getItem('auth_emp_id');
+    const { data: balances } = await supabaseClient
+      .from('employee_leave_balance')
+      .select('balance, used')
+      .eq('emp_id', empId);
+    let left = 0;
+    (balances || []).forEach(b => { left += (b.balance || 0) - (b.used || 0); });
+    document.getElementById('stat-leave').textContent = Math.max(0, left);
+  } catch (err) {
+    console.log('Leave balance stat unavailable');
+  }
+}
+
+// Marks past working days with no record as Absent, and cleans up Absent rows
+// wrongly created on off-days. Returns true only if it actually changed data.
+async function calculateMissingAttendance(dateMap, dayStatus, empId) {
+  const today = new Date();
+  const todayStr = toLocalDateStr(today);
+
+  try {
+    const wrongAbsentDates = [];
+    const missingDates = [];
+
+    Object.keys(dayStatus).forEach(dateStr => {
+      const status = dayStatus[dateStr];
+      const isOffDay = status === 'Weekend' || status === 'Holiday' || status === 'Leave';
+      if (isOffDay && dateMap[dateStr] === 'Absent') {
+        wrongAbsentDates.push(dateStr);
+      }
+    });
+
+    // Only days strictly BEFORE today can be auto-marked absent
+    const now = new Date();
+    for (let i = 1; i <= today.getDate() - 1; i++) {
+      const dateStr = toLocalDateStr(new Date(now.getFullYear(), now.getMonth(), i));
+      if (!dayStatus[dateStr] && !dateMap[dateStr]) {
+        missingDates.push(dateStr);
+      }
+    }
+
+    let dataChanged = false;
+
+    if (wrongAbsentDates.length > 0) {
+      await supabaseClient
+        .from('attendance_logs')
+        .delete()
+        .eq('emp_id', empId)
+        .eq('status', 'Absent')
+        .in('date', wrongAbsentDates);
+      dataChanged = true;
+    }
+
+    if (missingDates.length > 0) {
+      const rows = missingDates.map(dateStr => ({
+        emp_id: empId,
+        date: dateStr,
+        status: 'Absent',
+        remarks: 'Auto-marked due to no clock-in'
+      }));
+      await supabaseClient.from('attendance_logs').insert(rows);
+      dataChanged = true;
+    }
+
+    return dataChanged;
+  } catch (err) {
+    console.log('Absence auto-mark skipped:', err?.message);
+    return false;
+  }
+}
+
+async function refreshAttendanceData() {
+  const empId = localStorage.getItem('auth_emp_id');
+  if (!empId) return;
+
+  const refreshBtn = document.getElementById('refresh-btn');
+  refreshBtn.style.opacity = '0.5';
+
+  try {
+    await loadAttendanceData();
+  } finally {
+    refreshBtn.style.opacity = '1';
+  }
+}
+
+function renderCalendar(dayStatus) {
+  try {
+    const container = document.getElementById('cal-container');
+    if (!container) return;
+
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+    const statusClass = {
+      'Present': 'present',
+      'Short Day': 'late',
+      'Late': 'late',
+      'Absent': 'absent',
+      'Missing Clock Out': 'late',
+      'Leave': 'leave',
+      'Holiday': 'holiday',
+      'Weekend': 'weekend'
+    };
+
+    let html = '';
+    ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(d => {
+      html += `<div class="cal-day-hdr">${d}</div>`;
+    });
+    for (let i = 0; i < firstDay; i++) {
+      html += '<div class="cal-day cal-day-empty"></div>';
+    }
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+      let className = 'cal-day';
+      const status = dayStatus[dateStr];
+      if (status && statusClass[status]) className += ' ' + statusClass[status];
+      if (i === today.getDate()) className += ' today';
+      html += `<div class="${className}" title="${status || ''}">${i}</div>`;
+    }
+
+    container.innerHTML = html;
+  } catch (err) {
+    console.error('Error rendering calendar:', err);
+  }
+}
+
+function renderAttendanceLogs(logs) {
+  if (!logs || logs.length === 0) {
+    document.getElementById('att-log-list').innerHTML =
+      '<div style="text-align:center;color:var(--muted);padding:20px;font-size:12px">No attendance records</div>';
+    return;
+  }
+
+  const grouped = {};
+  logs.forEach(log => {
+    if (log.date) {
+      if (!grouped[log.date]) grouped[log.date] = [];
+      grouped[log.date].push(log);
+    }
+  });
+
+  const dates = Object.keys(grouped).sort().reverse().slice(0, 15);
+  const html = dates.map(date => {
+    const dayLogs = grouped[date];
+    const firstIn = dayLogs.find(l => l.clock_in_time)?.clock_in_time || '—';
+    const lastOut = [...dayLogs].reverse().find(l => l.clock_out_time)?.clock_out_time || '—';
+
+    let totalHours = 0;
+    dayLogs.forEach(log => {
+      if (log.hours_worked) {
+        const parts = log.hours_worked.match(/(\d+)h\s*(\d+)m/);
+        if (parts) {
+          totalHours += parseInt(parts[1]) * 60 + parseInt(parts[2]);
+        }
+      }
+    });
+
+    const totalH = Math.floor(totalHours / 60);
+    const totalM = totalHours % 60;
+    const totalStr = totalH > 0 || totalM > 0 ? `${totalH}h ${totalM}m` : '—';
+
+    const dateObj = new Date(date);
+    const dateStr = dateObj.toLocaleDateString('en-IN', {weekday:'short', month:'short', day:'numeric'});
+
+    const detailsHtml = dayLogs.map(log => `
+      <div class="log-entry">
+        <div class="log-detail">
+          <div class="log-detail-label">Clock In</div>
+          <div class="log-detail-val">${log.clock_in_time || '—'}</div>
+        </div>
+        <div class="log-detail">
+          <div class="log-detail-label">Clock Out</div>
+          <div class="log-detail-val">${log.clock_out_time || '—'}</div>
+        </div>
+        <div class="log-detail">
+          <div class="log-detail-label">Hours</div>
+          <div class="log-detail-val">${log.hours_worked || '—'}</div>
+        </div>
+      </div>
+    `).join('');
+
+    return `
+      <div class="log-item">
+        <div class="log-item-header" onclick="event.stopPropagation(); this.closest('.log-item').classList.toggle('expanded')">
+          <div>
+            <div class="log-item-date">${dateStr}</div>
+            <div class="log-item-summary">${dayLogs.length} entry(ies) · ${totalStr}</div>
+          </div>
+          <div class="log-item-expand-icon">⌄</div>
+        </div>
+        <div class="log-item-details">
+          ${detailsHtml}
+          <div style="padding-top:12px;border-top:1px solid rgba(0,102,255,0.08)">
+            <button class="btn-submit" style="width:100%;padding:8px;font-size:12px;margin-top:8px" onclick="openRegularizationModal('${date}')">
+              <i class="ti ti-clipboard-text"></i> Request Regularization
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.getElementById('att-log-list').innerHTML = html;
+}
+
+let leafletMap = null;
+let userMarker = null;
+let officeMarker = null;
+let radiusCircle = null;
+
+let COMPANY_SETTINGS = {
+  work_start_time: '09:00',
+  work_end_time: '18:00',
+  min_hours_per_day: 8,
+  late_after_time: '09:30',
+  penalty_per_late_hour: -100,
+  short_day_threshold: 6
+};
+
+async function loadCompanySettings() {
+  try {
+    const { data } = await supabaseClient
+      .from('company_settings')
+      .select('*')
+      .limit(1)
+      .single();
+
+    if (data) {
+      COMPANY_SETTINGS = data;
+
+      if (data.office_lat && data.office_lng) {
+        HIVU_CONFIG.office.lat = data.office_lat;
+        HIVU_CONFIG.office.lng = data.office_lng;
+        HIVU_CONFIG.office.radius = data.office_radius || 500;
+        console.log('✓ Office location updated:', HIVU_CONFIG.office);
+      }
+
+      console.log('✓ Settings loaded:', COMPANY_SETTINGS);
+    }
+  } catch (err) {
+    console.log('Using default settings');
+  }
+}
+
+function initLeafletMap() {
+  if (leafletMap) leafletMap.remove();
+
+  const mapContainer = document.getElementById('leaflet-map');
+  if (!mapContainer) return;
+
+  const officeLat = HIVU_CONFIG.office.lat || 28.6139;
+  const officeLng = HIVU_CONFIG.office.lng || 77.2090;
+  const userLat = STATE.clockInCoords?.lat || officeLat;
+  const userLng = STATE.clockInCoords?.lng || officeLng;
+
+  leafletMap = L.map('leaflet-map', {
+    center: [userLat, userLng],
+    zoom: 17,
+    zoomControl: true,
+    attributionControl: false
+  });
+
+  // Dark/Light tile layer based on current theme
+  const isDarkMode = STATE.isDarkMode;
+  const tileUrl = isDarkMode
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+
+  L.tileLayer(tileUrl, {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap',
+    className: 'leaflet-tile-layer'
+  }).addTo(leafletMap);
+
+  officeMarker = L.circleMarker([officeLat, officeLng], {
+    radius: 10,
+    fillColor: '#FF4D6A',
+    color: '#FF4D6A',
+    weight: 2,
+    opacity: 0.8,
+    fillOpacity: 0.7
+  }).addTo(leafletMap).bindPopup('Office Location');
+
+  radiusCircle = L.circle([officeLat, officeLng], {
+    radius: HIVU_CONFIG.office.radius || 500,
+    color: '#00D4FF',
+    fillColor: '#00D4FF',
+    weight: 2,
+    opacity: 0.3,
+    fillOpacity: 0.1,
+    dashArray: '5, 5'
+  }).addTo(leafletMap);
+}
+
+function updateLeafletMap(userLat, userLng) {
+  if (!leafletMap) {
+    console.error('Map not initialized');
+    return;
+  }
+
+  console.log('📍 Updating map with user location:', userLat, userLng);
+
+  const officeLat = HIVU_CONFIG.office.lat || 28.6139;
+  const officeLng = HIVU_CONFIG.office.lng || 77.2090;
+
+  if (userMarker) {
+    try {
+      leafletMap.removeLayer(userMarker);
+    } catch (e) {
+      console.log('Marker removal warning:', e);
+    }
+  }
+
+  try {
+    userMarker = L.circleMarker([userLat, userLng], {
+      radius: 12,
+      fillColor: '#00D4FF',
+      color: '#FFFFFF',
+      weight: 4,
+      opacity: 1,
+      fillOpacity: 1,
+      dashArray: '5, 2',
+      className: 'user-location-marker'
+    }).addTo(leafletMap).bindPopup('Your Location (lat: ' + userLat.toFixed(4) + ', lng: ' + userLng.toFixed(4) + ')');
+
+    console.log('✓ User marker added successfully - size: 12px, color: cyan with white border');
+  } catch (err) {
+    console.error('Error creating marker:', err);
+  }
+
+  const dist = calculateDistance(officeLat, officeLng, userLat, userLng);
+  document.getElementById('gps-dist-val').textContent = formatDistance(dist);
+
+  const pill = document.getElementById('gps-status-pill');
+  if (dist <= (HIVU_CONFIG.office.radius || 500)) {
+    pill.textContent = '✓ Inside zone';
+    pill.className = 'gps-status-pill inside';
+  } else {
+    pill.textContent = '⚠ Outside zone';
+    pill.className = 'gps-status-pill outside';
+  }
+
+  try {
+    const layers = [];
+    if (officeMarker) layers.push(officeMarker);
+    if (userMarker) layers.push(userMarker);
+    if (radiusCircle) layers.push(radiusCircle);
+
+    if (layers.length > 0) {
+      const group = new L.featureGroup(layers);
+      const bounds = group.getBounds();
+      if (bounds.isValid()) {
+        leafletMap.fitBounds(bounds, {padding: [50, 50], animate: true});
+        console.log('✓ Map fitted to bounds');
+      } else {
+        leafletMap.setView([userLat, userLng], 15);
+      }
+    }
+  } catch (err) {
+    console.error('Map fit error:', err);
+    leafletMap.setView([userLat, userLng], 15);
+  }
+}
+
+function startClock() {
+  if (STATE.clockInterval) clearInterval(STATE.clockInterval);
+  STATE.clockInterval = setInterval(() => {
+    const now = new Date();
+    const timeEl = document.getElementById('clock-time');
+    const dateEl = document.getElementById('clock-date');
+    const elapsedEl = document.getElementById('elapsed-time');
+
+    if (timeEl) timeEl.textContent = now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false});
+    if (dateEl) dateEl.textContent = now.toLocaleDateString('en-IN', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+
+    if (STATE.clockedIn && STATE.clockInTime && elapsedEl) {
+      const elapsed = Date.now() - STATE.clockInTime;
+      const hours = Math.floor(elapsed / 3600000);
+      const mins = Math.floor((elapsed % 3600000) / 60000);
+      const secs = Math.floor((elapsed % 60000) / 1000);
+      elapsedEl.textContent = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+  }, 1000);
+}
+
+function handleClock() {
+  if (STATE.clockedIn) {
+    clockOut();
+  } else {
+    clockIn();
+  }
+}
+
+function clockIn() {
+  document.getElementById('clock-btn').disabled = true;
+  openGpsModal();
+
+  CapNative.getCurrentPosition({enableHighAccuracy: true, timeout: 10000, maximumAge: 0})
+    .then(pos => {
+      const dist = calculateDistance(
+        HIVU_CONFIG.office.lat, HIVU_CONFIG.office.lng,
+        pos.coords.latitude, pos.coords.longitude
+      );
+      updateGpsModal(dist, HIVU_CONFIG.office.radius);
+      STATE.clockInCoords = {lat: pos.coords.latitude, lng: pos.coords.longitude, acc: pos.coords.accuracy, dist: dist};
+    })
+    .catch(err => {
+      showToast(err && err.message ? err.message : 'GPS error - try again');
+      closeGpsModal();
+    });
+}
+
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function formatDistance(m) {
+  return m >= 1000 ? `${(m/1000).toFixed(1)} km` : `${Math.round(m)} m`;
+}
+
+function openGpsModal() {
+  document.getElementById('gps-modal-overlay').classList.add('open');
+  document.getElementById('gps-loading').style.display = 'flex';
+  document.getElementById('gps-modal-sub').textContent = 'Getting location...';
+  document.getElementById('gps-radius-val').textContent = HIVU_CONFIG.office.radius + ' m';
+
+  setTimeout(() => {
+    initLeafletMap();
+  }, 100);
+}
+
+function closeGpsModal() {
+  document.getElementById('gps-modal-overlay').classList.remove('open');
+  document.getElementById('clock-btn').disabled = false;
+}
+
+function updateGpsModal(dist, radius) {
+  document.getElementById('gps-loading').style.display = 'none';
+  document.getElementById('gps-dist-val').textContent = formatDistance(dist);
+
+  const pill = document.getElementById('gps-status-pill');
+  if (dist <= radius) {
+    pill.textContent = '✓ Inside zone';
+    pill.className = 'gps-status-pill inside';
+  } else {
+    pill.textContent = '⚠ Outside zone';
+    pill.className = 'gps-status-pill outside';
+  }
+
+  if (STATE.clockInCoords) {
+    updateLeafletMap(STATE.clockInCoords.lat, STATE.clockInCoords.lng);
+  }
+}
+
+async function confirmClock() {
+  if (!STATE.clockInCoords) {
+    showToast('Location not available');
+    return;
+  }
+
+  if (STATE.clockInCoords.dist > HIVU_CONFIG.office.radius) {
+    showToast(`Outside zone (${formatDistance(STATE.clockInCoords.dist)} away). Move closer to office.`);
+    return;
+  }
+
+  const now = new Date();
+  const empId = localStorage.getItem('auth_emp_id');
+  const clockInTimeStr = now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true});
+  const localDate = toLocalDateStr(now);
+
+  try {
+    const { error } = await supabaseClient
+      .from('attendance_logs')
+      .insert({
+        emp_id: empId,
+        date: localDate,
+        clock_in_time: clockInTimeStr,
+        clock_in_lat: STATE.clockInCoords.lat,
+        clock_in_lng: STATE.clockInCoords.lng,
+        clock_in_accuracy: Math.round(STATE.clockInCoords.acc),
+        status: 'Present'
+      });
+
+    if (error) throw error;
+
+    STATE.clockedIn = true;
+    STATE.clockInTime = Date.now();
+    STATE.displayClockInTime = clockInTimeStr;
+    document.getElementById('display-clock-in').textContent = clockInTimeStr;
+    document.getElementById('display-clock-out').textContent = '—';
+
+    document.getElementById('status-pulse').style.background = 'var(--primary-light)';
+    document.getElementById('status-pulse').classList.add('pulse-animate');
+    document.getElementById('status-txt').textContent = 'Clocked in ✓';
+
+    document.getElementById('clock-btn').className = 'btn-clock btn-clock-out';
+    document.getElementById('clock-btn').innerHTML = '<i class="ti ti-player-stop"></i> <span id="clock-btn-txt">Clock Out</span>';
+
+    document.getElementById('loc-label').textContent = 'Location verified ✓';
+    document.getElementById('loc-coords').textContent = `${STATE.clockInCoords.lat.toFixed(4)}°N, ${STATE.clockInCoords.lng.toFixed(4)}°E`;
+
+    closeGpsModal();
+    showToast('Clocked in successfully');
+    CapNative.scheduleClockOutReminder(9);
+    loadAttendanceData();
+  } catch (err) {
+    showToast('Clock in failed');
+    console.error(err);
+  }
+}
+
+async function clockOut() {
+  if (!STATE.clockedIn) return;
+
+  openGpsModal();
+
+  CapNative.getCurrentPosition({enableHighAccuracy: true, timeout: 10000, maximumAge: 0})
+    .then(pos => {
+      const dist = calculateDistance(
+        HIVU_CONFIG.office.lat, HIVU_CONFIG.office.lng,
+        pos.coords.latitude, pos.coords.longitude
+      );
+      updateGpsModal(dist, HIVU_CONFIG.office.radius);
+      STATE.clockInCoords = {lat: pos.coords.latitude, lng: pos.coords.longitude, dist: dist};
+    })
+    .catch(err => proceedClockOut(null));
+
+  document.getElementById('clock-confirm-btn').textContent = 'Confirm Clock Out';
+  document.getElementById('clock-confirm-btn').onclick = confirmClockOut;
+}
+
+async function confirmClockOut() {
+  if (!STATE.clockInCoords) {
+    showToast('Location not available');
+    return;
+  }
+
+  if (STATE.clockInCoords.dist > HIVU_CONFIG.office.radius) {
+    showToast(`Outside zone (${formatDistance(STATE.clockInCoords.dist)} away). Move closer to office to clock out.`);
+    return;
+  }
+
+  proceedClockOut();
+}
+
+async function proceedClockOut() {
+  const now = new Date();
+  const empId = localStorage.getItem('auth_emp_id');
+  const clockOutTimeStr = now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:true});
+  const localDate = toLocalDateStr(now);
+
+  try {
+    const today = localDate;
+    const { data: existing } = await supabaseClient
+      .from('attendance_logs')
+      .select('id, clock_in_time')
+      .eq('emp_id', empId)
+      .eq('date', today)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Elapsed time from the recorded clock-in (AM/PM-safe), falling back to in-memory state
+    const inMinutes = parseTimeToMinutes(existing?.clock_in_time);
+    const outMinutes = parseTimeToMinutes(clockOutTimeStr);
+    let elapsedMin;
+    if (inMinutes != null && outMinutes != null && outMinutes >= inMinutes) {
+      elapsedMin = Math.round(outMinutes - inMinutes);
+    } else if (STATE.clockInTime) {
+      elapsedMin = Math.max(0, Math.round((Date.now() - STATE.clockInTime) / 60000));
+    } else {
+      elapsedMin = 0;
+    }
+    const hours = Math.floor(elapsedMin / 60);
+    const mins = elapsedMin % 60;
+    const totalHours = elapsedMin / 60;
+
+    if (existing) {
+      let status = 'Present';
+      let remarks = '';
+
+      const lateAfterMin = parseTimeToMinutes(COMPANY_SETTINGS.late_after_time || '09:30');
+      const isLate = inMinutes != null && lateAfterMin != null && inMinutes > lateAfterMin;
+      const isShort = totalHours < (COMPANY_SETTINGS.short_day_threshold || 6);
+      const shortHours = Math.max(0, (COMPANY_SETTINGS.min_hours_per_day || 8) - totalHours);
+
+      if (isLate) {
+        status = 'Late';
+        remarks = 'Late clock-in';
+      }
+      if (isShort) {
+        if (isLate) {
+          remarks += ` · Short by ${shortHours.toFixed(1)}h`;
+        } else {
+          status = 'Short Day';
+          remarks = `Short by ${shortHours.toFixed(1)}h`;
+        }
+      }
+      const penalty = 0; // monetary penalties are computed on the payslip from admin-set percentages
+
+      const { error } = await supabaseClient
+        .from('attendance_logs')
+        .update({
+          clock_out_time: clockOutTimeStr,
+          clock_out_lat: STATE.clockInCoords?.lat,
+          clock_out_lng: STATE.clockInCoords?.lng,
+          hours_worked: `${hours}h ${mins}m`,
+          status: status,
+          penalty: penalty,
+          remarks: remarks
+        })
+        .eq('id', existing.id);
+
+      if (error) throw error;
+    }
+
+    STATE.clockedIn = false;
+    STATE.clockInTime = null;
+    CapNative.cancelClockOutReminder();
+    STATE.displayClockOutTime = clockOutTimeStr;
+    document.getElementById('display-clock-out').textContent = clockOutTimeStr;
+    document.getElementById('elapsed-time').textContent = `${hours}h ${mins}m`;
+
+    document.getElementById('status-pulse').style.background = 'var(--orange)';
+    document.getElementById('status-pulse').classList.remove('pulse-animate');
+    document.getElementById('status-txt').textContent = `Clocked out · ${hours}h ${mins}m`;
+
+    document.getElementById('clock-btn').className = 'btn-clock btn-clock-in';
+    document.getElementById('clock-btn').innerHTML = '<i class="ti ti-player-play"></i> <span id="clock-btn-txt">Clock In</span>';
+    document.getElementById('clock-btn').disabled = false;
+
+    document.getElementById('clock-confirm-btn').textContent = 'Confirm Clock In';
+    document.getElementById('clock-confirm-btn').onclick = confirmClock;
+
+    document.getElementById('loc-label').textContent = 'Tap Clock In to enable GPS';
+    document.getElementById('loc-coords').textContent = '—';
+
+    closeGpsModal();
+    showToast(`Clocked out · ${hours}h ${mins}m logged`);
+    loadAttendanceData();
+  } catch (err) {
+    showToast('Clock out failed');
+    console.error(err);
+  }
+}
+
+function switchLeaveTab(tab) {
+  document.getElementById('leave-apply-tab').style.display = 'none';
+  document.getElementById('leave-history-tab').style.display = 'none';
+  document.getElementById('leave-holidays-tab').style.display = 'none';
+  document.getElementById(`leave-${tab}-tab`).style.display = 'block';
+
+  document.querySelectorAll('.seg-tabs .seg-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+
+  if (tab === 'apply') {
+    loadLeaveTypes();
+    setTimeout(() => setupDatePickerListeners(), 100);
+  }
+  if (tab === 'history') loadLeaveHistory();
+  if (tab === 'holidays') loadCompanyHolidays();
+}
+
+/* ---------- Custom Select Dropdown ---------- */
+// Native select ka popup OS-style hota hai jo theme se match nahi karta;
+// isliye khulne par apna themed panel dikhate hain. Value/change events native hi rehte hain.
+
+let currentSelectEl = null;
+
+function openSelectPanel(sel) {
+  closeSelectPanel();
+  if (sel.disabled || sel.options.length === 0) return;
+  const rect = sel.getBoundingClientRect();
+  const panel = document.createElement('div');
+  panel.className = 'select-panel';
+  panel.style.left = rect.left + 'px';
+  panel.style.top = (rect.bottom + 6) + 'px';
+  panel.style.minWidth = rect.width + 'px';
+  Array.from(sel.options).forEach((opt, i) => {
+    const item = document.createElement('div');
+    item.className = 'select-panel-item' + (i === sel.selectedIndex ? ' selected' : '');
+    item.textContent = opt.textContent;
+    item.addEventListener('click', () => {
+      sel.selectedIndex = i;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      closeSelectPanel();
+    });
+    panel.appendChild(item);
+  });
+  document.body.appendChild(panel);
+  currentSelectEl = sel;
+  const ph = panel.offsetHeight;
+  if (rect.bottom + 6 + ph > window.innerHeight) {
+    panel.style.top = Math.max(8, rect.top - ph - 6) + 'px';
+  }
+}
+
+function closeSelectPanel() {
+  document.querySelectorAll('.select-panel').forEach(p => p.remove());
+  currentSelectEl = null;
+}
+
+document.addEventListener('mousedown', (e) => {
+  const sel = e.target.closest?.('select.form-select, select.form-input');
+  if (sel) {
+    e.preventDefault();
+    sel.focus();
+    if (currentSelectEl === sel) { closeSelectPanel(); return; }
+    openSelectPanel(sel);
+    return;
+  }
+  if (!e.target.closest?.('.select-panel')) closeSelectPanel();
+});
+window.addEventListener('resize', closeSelectPanel);
+window.addEventListener('scroll', (e) => {
+  if (!e.target?.closest?.('.select-panel')) closeSelectPanel();
+}, true);
+
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Renders leave types as selectable cards with live remaining balance
+async function loadLeaveTypes() {
+  const container = document.getElementById('leave-type-cards');
+  if (!container) return;
+  const empId = localStorage.getItem('auth_emp_id');
+
+  try {
+    const [{ data: types }, { data: balances }] = await Promise.all([
+      supabaseClient.from('leave_types').select('*').eq('is_active', true),
+      supabaseClient.from('employee_leave_balance').select('*').eq('emp_id', empId)
+    ]);
+
+    if (!types || types.length === 0) {
+      container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0">No leave types configured</div>';
+      return;
+    }
+
+    const selectedId = document.getElementById('leave-type').value;
+    container.innerHTML = types.map(type => {
+      const bal = balances?.find(b => b.leave_type_id === type.id);
+      const total = (bal?.balance ?? type.days_per_year) || 0;
+      const remaining = Math.max(0, total - (bal?.used || 0));
+      const pct = total > 0 ? Math.round((remaining / total) * 100) : 0;
+      const color = type.color || 'var(--primary)';
+      return `
+        <div class="lt-card${type.id === selectedId ? ' selected' : ''}" data-type-id="${escapeHtml(type.id)}" data-remaining="${remaining}" onclick="selectLeaveType(this)">
+          <i class="ti ti-circle-check-filled lt-check"></i>
+          <div class="lt-name"><span class="lt-dot" style="background:${escapeHtml(color)}"></span>${escapeHtml(type.name)}</div>
+          <div class="lt-left">${remaining} <span class="lt-total">/ ${total} left</span></div>
+          <div class="lt-bar"><div class="lt-fill" style="width:${pct}%;background:${escapeHtml(color)}"></div></div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    console.log('Error loading leave types');
+  }
+}
+
+function selectLeaveType(card) {
+  document.querySelectorAll('#leave-type-cards .lt-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  const input = document.getElementById('leave-type');
+  input.value = card.dataset.typeId;
+  input.dataset.remaining = card.dataset.remaining;
+}
+
+async function loadLeaveHistory() {
+  const empId = localStorage.getItem('auth_emp_id');
+  if (!empId) return;
+
+  try {
+    const [{ data }, { data: types }] = await Promise.all([
+      supabaseClient
+        .from('leave_requests')
+        .select(`id, leave_type_id, from_date, to_date, days, reason, status, created_at`)
+        .eq('emp_id', empId)
+        .order('created_at', { ascending: false })
+        .limit(10),
+      supabaseClient.from('leave_types').select('id, name, color')
+    ]);
+
+    if (!data || data.length === 0) {
+      document.getElementById('leave-history-container').innerHTML =
+        '<div style="text-align:center;color:var(--muted);padding:20px;font-size:12px">No applications yet</div>';
+      return;
+    }
+
+    const typeMap = {};
+    (types || []).forEach(t => { typeMap[t.id] = t; });
+
+    let html = '';
+    data.forEach(req => {
+      const startDate = new Date(req.from_date).toLocaleDateString('en-IN');
+      const endDate = new Date(req.to_date).toLocaleDateString('en-IN');
+      const statusColor = req.status === 'Approved' ? 'var(--green)' : req.status === 'Rejected' ? 'var(--red)' : 'var(--orange)';
+      const type = typeMap[req.leave_type_id];
+      const typeName = type?.name || 'Leave';
+      const typeColor = type?.color || 'var(--primary)';
+
+      html += `
+        <div class="log-item" style="margin-bottom:10px">
+          <div class="log-item-header" style="justify-content:space-between">
+            <div>
+              <div class="log-item-date" style="display:flex;align-items:center;gap:6px">
+                <span style="width:8px;height:8px;border-radius:50%;background:${escapeHtml(typeColor)};flex-shrink:0"></span>
+                ${req.days} day${req.days > 1 ? 's' : ''} · ${escapeHtml(typeName)}
+              </div>
+              <div class="log-item-summary">${startDate} to ${endDate}</div>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:${statusColor}">${req.status}</div>
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById('leave-history-container').innerHTML = html;
+  } catch (err) {
+    console.log('Error loading history');
+  }
+}
+
+async function loadCompanyHolidays() {
+  try {
+    const { data } = await supabaseClient
+      .from('company_holidays')
+      .select('*')
+      .order('date', { ascending: true });
+
+    if (!data || data.length === 0) {
+      document.getElementById('holiday-list-container').innerHTML =
+        '<div style="text-align:center;color:var(--muted);font-size:12px">No holidays</div>';
+      return;
+    }
+
+    let html = '';
+    data.forEach(holiday => {
+      const date = new Date(holiday.date);
+      const day = date.toLocaleDateString('en-IN', {weekday: 'short'});
+      const dateStr = date.toLocaleDateString('en-IN', {month: 'short', day: 'numeric'});
+
+      html += `
+        <div style="background:var(--surface);border:1px solid rgba(0,102,255,0.1);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--text)">${holiday.holiday_name}</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">${day}, ${dateStr}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    document.getElementById('holiday-list-container').innerHTML = html;
+  } catch (err) {
+    console.log('Error loading holidays');
+  }
+}
+
+// CUSTOM CALENDAR FUNCTIONS
+let CALENDAR_STATE = {
+  currentMonth: new Date().getMonth(),
+  currentYear: new Date().getFullYear(),
+  selectedDate: null,
+  targetField: null,
+  startDate: null,
+  endDate: null
+};
+
+function openCalendar(fieldId) {
+  try {
+    const overlayEl = document.getElementById('calendar-overlay');
+    const datesEl = document.getElementById('calendar-dates');
+
+    if (!overlayEl || !datesEl) {
+      console.error('Calendar elements not found');
+      return;
+    }
+
+    CALENDAR_STATE.targetField = fieldId;
+    const existingDate = document.getElementById(fieldId).value;
+    if (existingDate) {
+      const date = new Date(existingDate);
+      CALENDAR_STATE.currentMonth = date.getMonth();
+      CALENDAR_STATE.currentYear = date.getFullYear();
+      CALENDAR_STATE.selectedDate = date;
+    }
+
+    renderLeaveCalendar();
+    overlayEl.classList.add('open');
+  } catch (err) {
+    console.error('Error opening calendar:', err);
+  }
+}
+
+function closeCalendar() {
+  try {
+    const overlayEl = document.getElementById('calendar-overlay');
+    if (overlayEl) {
+      overlayEl.classList.remove('open');
+    }
+  } catch (err) {
+    console.error('Error closing calendar:', err);
+  }
+}
+
+function initCalendarEventListeners() {
+  try {
+    const dateInputs = document.querySelectorAll('[data-calendar-field]');
+    const calendarOverlay = document.getElementById('calendar-overlay');
+    const calendarModal = document.querySelector('.calendar-modal');
+
+    dateInputs.forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const fieldId = el.getAttribute('data-calendar-field');
+        if (fieldId) {
+          openCalendar(fieldId);
+        }
+      });
+    });
+
+    if (calendarOverlay && calendarModal) {
+      calendarOverlay.addEventListener('click', (e) => {
+        if (e.target === calendarOverlay) {
+          closeCalendar();
+        }
+      });
+
+      calendarModal.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
+  } catch (err) {
+    console.error('Error initializing calendar listeners:', err);
+  }
+}
+
+function renderLeaveCalendar() {
+  try {
+    const monthYearEl = document.getElementById('calendar-month-year');
+    const datesEl = document.getElementById('calendar-dates');
+
+    if (!monthYearEl || !datesEl) {
+      console.error('Calendar display elements not found');
+      return;
+    }
+
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const year = CALENDAR_STATE.currentYear;
+    const month = CALENDAR_STATE.currentMonth;
+
+    monthYearEl.textContent = `${monthNames[month]}, ${year}`;
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    let html = '';
+
+    // Previous month dates
+    for (let i = firstDay - 1; i >= 0; i--) {
+      html += `<div class="calendar-date other-month">${daysInPrevMonth - i}</div>`;
+    }
+
+    // Current month dates
+    const today = new Date();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const isToday = date.toDateString() === today.toDateString();
+      const isSelected = CALENDAR_STATE.selectedDate &&
+                         date.toDateString() === CALENDAR_STATE.selectedDate.toDateString();
+
+      let classes = 'calendar-date';
+      if (isToday) classes += ' today';
+      if (isSelected) classes += ' selected';
+
+      html += `<div class="${classes}" onclick="selectCalendarDate(${day})">${day}</div>`;
+    }
+
+    // Next month dates
+    const totalCells = firstDay + daysInMonth;
+    const remainingCells = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+    for (let i = 1; i <= remainingCells; i++) {
+      html += `<div class="calendar-date other-month">${i}</div>`;
+    }
+
+    datesEl.innerHTML = html;
+  } catch (err) {
+    console.error('Error rendering calendar:', err);
+  }
+}
+
+function selectCalendarDate(day) {
+  CALENDAR_STATE.selectedDate = new Date(CALENDAR_STATE.currentYear, CALENDAR_STATE.currentMonth, day);
+  renderLeaveCalendar();
+}
+
+function confirmCalendarDate() {
+  if (!CALENDAR_STATE.selectedDate) {
+    showToast('Please select a date');
+    return;
+  }
+
+  const dateStr = toLocalDateStr(CALENDAR_STATE.selectedDate);
+  const fieldId = CALENDAR_STATE.targetField;
+  document.getElementById(fieldId).value = dateStr;
+
+  // Update days calculation if both dates are set
+  const leaveFrom = document.getElementById('leave-from').value;
+  const leaveTo = document.getElementById('leave-to').value;
+  if (leaveFrom && leaveTo) {
+    const from = new Date(leaveFrom);
+    const to = new Date(leaveTo);
+    const days = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+    document.getElementById('leave-days').textContent = Math.max(0, days);
+  }
+
+  closeCalendar();
+}
+
+function calendarPrevMonth() {
+  if (CALENDAR_STATE.currentMonth === 0) {
+    CALENDAR_STATE.currentMonth = 11;
+    CALENDAR_STATE.currentYear--;
+  } else {
+    CALENDAR_STATE.currentMonth--;
+  }
+  renderLeaveCalendar();
+}
+
+function calendarNextMonth() {
+  if (CALENDAR_STATE.currentMonth === 11) {
+    CALENDAR_STATE.currentMonth = 0;
+    CALENDAR_STATE.currentYear++;
+  } else {
+    CALENDAR_STATE.currentMonth++;
+  }
+  renderLeaveCalendar();
+}
+
+function toggleMonthPicker() {
+  // Can add year/month picker later
+}
+
+async function submitLeave() {
+  const empId = localStorage.getItem('auth_emp_id');
+  const leaveTypeId = document.getElementById('leave-type').value;
+  const fromDate = document.getElementById('leave-from').value;
+  const toDate = document.getElementById('leave-to').value;
+  const reason = document.getElementById('leave-reason').value;
+
+  if (!leaveTypeId || !fromDate || !toDate) {
+    showToast('Fill all required fields');
+    return;
+  }
+
+  // Validate date range
+  const from = new Date(fromDate);
+  const to = new Date(toDate);
+
+  if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+    showToast('Invalid date format');
+    return;
+  }
+
+  if (to < from) {
+    showToast('End date cannot be before start date');
+    return;
+  }
+
+  const days = Math.ceil((to - from) / (1000 * 60 * 60 * 24)) + 1;
+
+  const typeInput = document.getElementById('leave-type');
+  const remaining = parseFloat(typeInput?.dataset?.remaining);
+  if (!isNaN(remaining) && days > remaining) {
+    showToast(`Only ${remaining} days available for this leave type`);
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('leave_requests')
+      .insert({
+        emp_id: empId,
+        leave_type_id: leaveTypeId,
+        from_date: fromDate,
+        to_date: toDate || fromDate,
+        days: days,
+        reason: reason,
+        status: 'Pending'
+      });
+
+    if (error) throw error;
+
+    const typeEl = document.getElementById('leave-type');
+    typeEl.value = '';
+    delete typeEl.dataset.remaining;
+    document.getElementById('leave-from').value = '';
+    document.getElementById('leave-to').value = '';
+    document.getElementById('leave-reason').value = '';
+    document.querySelectorAll('#leave-type-cards .lt-card').forEach(c => c.classList.remove('selected'));
+
+    showToast('Leave request submitted');
+    loadLeaveTypes();
+  } catch (err) {
+    showToast('Error submitting leave');
+    console.error(err);
+  }
+}
+
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('pg-' + page).classList.add('active');
+
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('nav-' + page).classList.add('active');
+
+  STATE.currentPage = page;
+}
+
+function setupDatePickerListeners() {
+  const dateInputs = document.querySelectorAll('input[type="date"]');
+  dateInputs.forEach(input => {
+    input.addEventListener('click', (e) => {
+      input.showPicker?.();
+    });
+    input.addEventListener('touchstart', (e) => {
+      input.showPicker?.();
+    });
+  });
+}
+
+function openRegularizationModal(dateStr) {
+  document.getElementById('regularization-modal').classList.add('open');
+  const dateObj = new Date(dateStr);
+  const dateFormatted = dateObj.toLocaleDateString('en-IN', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+  document.getElementById('reg-date').value = dateFormatted;
+  document.getElementById('reg-date').dataset.dateStr = dateStr;
+  document.getElementById('reg-reason').value = '';
+  document.getElementById('reg-type').value = 'full_day';
+}
+
+function closeRegularizationModal() {
+  document.getElementById('regularization-modal').classList.remove('open');
+}
+
+async function submitRegularization() {
+  const empId = localStorage.getItem('auth_emp_id');
+  const dateStr = document.getElementById('reg-date').dataset.dateStr;
+  const reason = document.getElementById('reg-reason').value;
+  const type = document.getElementById('reg-type').value;
+
+  if (!reason) {
+    showToast('Please provide a reason');
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('attendance_regularization')
+      .insert([{
+        emp_id: empId,
+        date: dateStr,
+        reason: reason,
+        request_type: type,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      }]);
+
+    if (error) throw error;
+
+    showToast('Regularization request submitted');
+    closeRegularizationModal();
+  } catch (err) {
+    showToast('Error submitting regularization request');
+    console.error(err);
+  }
+}
+
+async function toggleNotifications() {
+  const panel = document.getElementById('notif-panel');
+  if (panel.classList.contains('open')) {
+    panel.classList.remove('open');
+  } else {
+    panel.classList.add('open');
+    await loadEmployeeNotifications();
+  }
+}
+
+async function loadEmployeeNotifications() {
+  try {
+    const empId = localStorage.getItem('auth_emp_id');
+    const { data: notifications } = await supabaseClient
+      .from('notifications')
+      .select('*')
+      .eq('emp_id', empId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+
+    const container = document.getElementById('notif-items-container');
+
+    if (!notifications || notifications.length === 0) {
+      container.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:12px">No notifications</div>';
+      document.getElementById('notif-dot').style.display = 'none';
+      return;
+    }
+
+    // Check for unread
+    const unreadCount = notifications.filter(n => !n.read).length;
+    document.getElementById('notif-dot').style.display = unreadCount > 0 ? 'block' : 'none';
+
+    let html = '';
+    notifications.forEach(notif => {
+      const date = new Date(notif.created_at).toLocaleDateString();
+      const typeIcon = {
+        'general': 'ti-mail',
+        'important': 'ti-alert-triangle',
+        'leave': 'ti-calendar-event',
+        'attendance': 'ti-clock',
+        'payslip': 'ti-file-invoice'
+      }[notif.type] || 'ti-bell';
+
+      html += `
+        <div class="notif-item${notif.read ? '' : ' unread'}" onclick="toggleNotifItem(this, '${notif.id}')">
+          <div class="notif-item-icon"><i class="ti ${typeIcon}"></i></div>
+          <div class="notif-item-body">
+            <div class="notif-item-title">${notif.title}</div>
+            <div class="notif-item-msg">${notif.message}</div>
+            <div class="notif-item-date">${date}</div>
+          </div>
+          <i class="ti ti-chevron-down notif-item-chev"></i>
+        </div>
+      `;
+    });
+    container.innerHTML = html;
+  } catch (err) {
+    console.error('Error loading notifications:', err);
+  }
+}
+
+// Click par notification expand/collapse hota hai; unread ho toh read mark karta hai
+function toggleNotifItem(el, notifId) {
+  el.classList.toggle('expanded');
+  if (el.classList.contains('unread')) {
+    markNotificationAsRead(notifId, el);
+  }
+}
+
+async function markNotificationAsRead(notifId, el) {
+  try {
+    const { error } = await supabaseClient
+      .from('notifications')
+      .update({ read: true })
+      .eq('id', notifId);
+
+    if (!error && el) {
+      el.classList.remove('unread');
+      const unread = document.querySelectorAll('#notif-items-container .notif-item.unread').length;
+      document.getElementById('notif-dot').style.display = unread > 0 ? 'block' : 'none';
+    }
+  } catch (err) {
+    console.error('Error marking notification as read:', err);
+  }
+}
+
+// Panel ke bahar kahin bhi click hone par notification panel band ho jaye
+document.addEventListener('click', (e) => {
+  const panel = document.getElementById('notif-panel');
+  if (!panel || !panel.classList.contains('open')) return;
+  const btn = document.getElementById('notif-btn');
+  if (!panel.contains(e.target) && !(btn && btn.contains(e.target))) {
+    panel.classList.remove('open');
+  }
+});
+
+function toggleTheme() {
+  STATE.isDarkMode = !STATE.isDarkMode;
+  if (STATE.isDarkMode) {
+    document.body.classList.remove('light-mode');
+    document.getElementById('theme-icon').className = 'ti ti-sun';
+  } else {
+    document.body.classList.add('light-mode');
+    document.getElementById('theme-icon').className = 'ti ti-moon';
+  }
+  localStorage.setItem('theme_mode', STATE.isDarkMode ? 'dark' : 'light');
+
+  // Refresh map tile layer for new theme
+  if (leafletMap) {
+    leafletMap.eachLayer(layer => {
+      if (layer instanceof L.TileLayer) {
+        leafletMap.removeLayer(layer);
+      }
+    });
+    const isDarkMode = STATE.isDarkMode;
+    const tileUrl = isDarkMode
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    L.tileLayer(tileUrl, {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap',
+      className: 'leaflet-tile-layer'
+    }).addTo(leafletMap);
+  }
+}
+
+function setupPullToRefresh() {
+  let touchStart = 0;
+  const screen = document.getElementById('screen');
+
+  screen.addEventListener('touchstart', (e) => {
+    touchStart = e.touches[0].clientY;
+  });
+
+  screen.addEventListener('touchend', (e) => {
+    if (screen.scrollTop === 0 && e.changedTouches[0].clientY > touchStart + 50) {
+      loadUserData();
+      showToast('Refreshed');
+    }
+  });
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+// Native (Android): Camera plugin sheet — "Take Photo" / "Choose from Gallery".
+// Web: falls back to the hidden file input.
+async function changeProfilePhoto() {
+  if (window.CapNative && CapNative.isNative) {
+    try {
+      const dataUrl = await CapNative.pickProfilePhoto();
+      if (dataUrl) await saveProfilePhoto(dataUrl);
+    } catch (err) {
+      showToast('Could not get photo');
+      console.error(err);
+    }
+  } else {
+    document.getElementById('avatar-input').click();
+  }
+}
+
+async function uploadProfilePhoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  // Validate file type
+  const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!validTypes.includes(file.type)) {
+    showToast('Only JPEG, PNG, or WebP images allowed');
+    return;
+  }
+
+  // Validate file size (max 2MB)
+  const maxSize = 2 * 1024 * 1024;
+  if (file.size > maxSize) {
+    showToast('File size must be less than 2MB');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onerror = () => {
+    showToast('Error reading file');
+  };
+  reader.onload = (e) => {
+    const photoUrl = e.target?.result;
+    if (!photoUrl) {
+      showToast('Error processing image');
+      return;
+    }
+    saveProfilePhoto(photoUrl);
+  };
+  reader.readAsDataURL(file);
+}
+
+async function saveProfilePhoto(photoUrl) {
+  const empId = localStorage.getItem('auth_emp_id');
+  if (!empId) {
+    showToast('Error: Not logged in');
+    return;
+  }
+
+  try {
+    const { error: updateError } = await supabaseClient
+      .from('employees')
+      .update({ avatar: photoUrl })
+      .eq('emp_id', empId);
+
+    if (updateError) throw updateError;
+
+    document.getElementById('profile-avatar').style.backgroundImage = `url(${photoUrl})`;
+    document.getElementById('profile-avatar').textContent = '';
+
+    const heroAv = document.getElementById('hero-avatar');
+    if (heroAv) {
+      heroAv.style.backgroundImage = `url(${photoUrl})`;
+      heroAv.textContent = '';
+    }
+
+    showToast('Profile photo updated');
+  } catch (err) {
+    showToast('Failed to upload photo');
+    console.error(err);
+  }
+}
+
+async function signOut() {
+  await supabaseClient.auth.signOut();
+  localStorage.removeItem('auth_emp_id');
+  location.reload();
+}
+
+async function populateMonthPicker() {
+  const monthPicker = document.getElementById('month-picker');
+  if (!monthPicker) return;
+
+  const today = new Date();
+  let html = '';
+
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const monthStr = d.toLocaleString('default', { month: 'short', year: 'numeric' });
+    const monthValue = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const isCurrentMonth = i === 0 ? 'selected' : '';
+
+    html += `
+      <button class="month-chip ${isCurrentMonth}"
+              onclick="loadPayslip('${monthValue}', this)">
+        ${monthStr}
+      </button>
+    `;
+  }
+
+  monthPicker.innerHTML = html;
+
+  // Auto-load the current month's payslip
+  const currentValue = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+  loadPayslip(currentValue, monthPicker.querySelector('.month-chip'));
+}
+
+function setSlip(id, amount) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = `₹${Math.round(amount || 0).toLocaleString('en-IN')}`;
+}
+
+async function loadPayslip(monthStr, chipEl) {
+  const empId = localStorage.getItem('auth_emp_id');
+  if (!empId) return;
+
+  const [year, month] = monthStr.split('-');
+
+  try {
+    const monthNum = parseInt(month);
+    const lastDay = new Date(year, monthNum, 0).getDate();
+    const monthEnd = `${monthStr}-${String(lastDay).padStart(2, '0')}`;
+
+    const [{ data: emp }, { data: saved }, { data: settings }, { data: logs }] = await Promise.all([
+      supabaseClient.from('employees').select('*').eq('emp_id', empId).single(),
+      supabaseClient.from('payslips').select('*').eq('emp_id', empId).eq('month', monthStr).limit(1),
+      supabaseClient.from('company_settings').select('*').limit(1).single(),
+      supabaseClient.from('attendance_logs').select('date, status').eq('emp_id', empId)
+        .gte('date', monthStr + '-01').lte('date', monthEnd)
+    ]);
+
+    if (!emp) {
+      document.getElementById('slip-name').textContent = 'Employee not found';
+      return;
+    }
+
+    const monthName = new Date(year, monthNum - 1).toLocaleString('default', { month: 'long' });
+    document.getElementById('slip-name').textContent = emp.name || '—';
+    document.getElementById('slip-sub').textContent = `${emp.emp_id} · ${emp.designation || '—'} · ${monthName} ${year}`;
+
+    const attEl = document.getElementById('slip-attendance');
+
+    let slip, official, attLine;
+    if (saved && saved.length > 0) {
+      // 1) Prefer the payslip generated by admin for this month
+      const p = saved[0];
+      official = true;
+      attLine = `Present: ${p.present_days ?? '—'} | Late: ${p.late_days ?? '—'} | Absent: ${p.absent_days ?? '—'}`;
+      slip = {
+        basic: p.basic_salary, hra: p.hra, da: p.da, allowances: p.other_allowances,
+        gross: p.gross_salary, pf: p.pf_deduction, esi: p.esi_deduction,
+        insurance: p.insurance_deduction,
+        penalty: (p.late_penalty || 0) + (p.absent_penalty || 0) + (p.short_day_penalty || 0),
+        totalDed: p.total_deductions, net: p.net_salary
+      };
+    } else {
+      // 2) Fallback: live estimate with the same formula the admin panel uses
+      let lateDays = 0, absentDays = 0, shortDays = 0, presentDays = 0;
+      (logs || []).forEach(l => {
+        if (l.status === 'Late') lateDays++;
+        else if (l.status === 'Absent') absentDays++;
+        else if (l.status === 'Short Day') shortDays++;
+        else if (l.status === 'Present') presentDays++;
+      });
+
+      const basic = emp.basic_salary || 0;
+      const hra = emp.hra || 0;
+      const da = emp.da || 0;
+      const allowances = emp.other_allowances || 0;
+      const gross = basic + hra + da + allowances;
+      const perDay = gross / 30;
+
+      const pf = emp.pf_deduction || 0;
+      const esi = emp.esi_deduction || 0;
+      const insurance = emp.insurance_deduction || 0;
+      const penalty =
+        perDay * lateDays * ((settings?.penalty_per_late_pct || 2) / 100) +
+        perDay * absentDays * ((settings?.absent_penalty_pct || 5) / 100) +
+        perDay * shortDays * ((settings?.shortday_penalty_pct || 3) / 100);
+
+      const totalDed = pf + esi + insurance + penalty;
+      official = false;
+      attLine = `Present: ${presentDays} | Late: ${lateDays} | Absent: ${absentDays}`;
+      slip = { basic, hra, da, allowances, gross, pf, esi, insurance, penalty, totalDed, net: gross - totalDed };
+    }
+
+    setSlip('slip-basic', slip.basic);
+    setSlip('slip-hra', slip.hra);
+    setSlip('slip-da', slip.da);
+    setSlip('slip-allowances', slip.allowances);
+    setSlip('slip-gross', slip.gross);
+    setSlip('slip-pf', slip.pf);
+    setSlip('slip-esi', slip.esi);
+    setSlip('slip-insurance', slip.insurance);
+    setSlip('slip-penalty', slip.penalty);
+    setSlip('slip-total-ded', slip.totalDed);
+    setSlip('slip-net', slip.net);
+
+    if (attEl) {
+      attEl.textContent = (official ? '✓ Official payslip · ' : 'Estimate (admin has not generated this month yet) · ') + attLine;
+      attEl.style.display = 'block';
+    }
+
+    renderPenaltyDetails(logs, (slip.gross || 0) / 30, settings);
+
+    STATE.currentSlip = {
+      emp, slip, monthStr, official, attLine,
+      monthLabel: `${monthName} ${year}${official ? '' : ' (Estimate)'}`
+    };
+
+    document.querySelectorAll('.month-chip').forEach(chip => {
+      chip.classList.remove('selected');
+    });
+    if (chipEl) chipEl.classList.add('selected');
+  } catch (err) {
+    console.error('Error loading payslip:', err);
+    document.getElementById('slip-name').textContent = 'Error loading payslip';
+  }
+}
+
+// Day-by-day penalty list + company penalty rules under the payslip
+function renderPenaltyDetails(logs, perDay, settings) {
+  const card = document.getElementById('slip-penalty-card');
+  const listEl = document.getElementById('slip-penalty-breakdown');
+  const rulesEl = document.getElementById('slip-penalty-rules');
+  if (!card || !listEl || !rulesEl) return;
+
+  const latePct = settings?.penalty_per_late_pct ?? 2;
+  const absentPct = settings?.absent_penalty_pct ?? 5;
+  const shortPct = settings?.shortday_penalty_pct ?? 3;
+  const pctMap = { 'Late': latePct, 'Absent': absentPct, 'Short Day': shortPct };
+
+  const rows = (logs || [])
+    .filter(l => pctMap[l.status] > 0)
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
+
+  if (rows.length === 0) {
+    card.style.display = 'none';
+  } else {
+    let total = 0;
+    const rowsHtml = rows.map(l => {
+      const pct = pctMap[l.status];
+      const amt = perDay * pct / 100;
+      total += amt;
+      const dStr = new Date(l.date + 'T00:00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+      const color = l.status === 'Absent' ? 'var(--red)' : 'var(--orange)';
+      return `
+        <div class="slip-row">
+          <span class="slip-row-label">${dStr} — ${l.status} <span style="color:var(--muted)">(${pct}%)</span></span>
+          <span class="slip-row-val" style="color:${color}">− ₹${Math.round(amt).toLocaleString('en-IN')}</span>
+        </div>`;
+    }).join('');
+    listEl.innerHTML = rowsHtml + `
+        <div class="slip-row" style="font-weight:700;border-bottom:none">
+          <span class="slip-row-label">Total penalty</span>
+          <span class="slip-row-val" style="color:var(--red)">− ₹${Math.round(total).toLocaleString('en-IN')}</span>
+        </div>`;
+    card.style.display = 'block';
+  }
+
+  const lateAfter = COMPANY_SETTINGS.late_after_time || '09:30';
+  const shortThreshold = COMPANY_SETTINGS.short_day_threshold || 6;
+  rulesEl.innerHTML = `
+    <div style="font-weight:600;color:var(--text);margin-bottom:4px"><i class="ti ti-info-circle"></i> Penalty rules</div>
+    • Late clock-in (after ${escapeHtml(lateAfter)}): <b>${latePct}%</b> of daily wage<br>
+    • Absent on a working day: <b>${absentPct}%</b> of daily wage<br>
+    • Short day (less than ${shortThreshold}h worked): <b>${shortPct}%</b> of daily wage<br>
+    <span style="opacity:0.85">Daily wage = Gross salary ÷ 30. Percentages are set by the company and may change.</span>`;
+  rulesEl.style.display = 'block';
+}
+
+// ---- Payslip PDF download (clean slip only — no penalty rules) ----
+let jsPDFLoadPromise = null;
+function ensureJsPDF() {
+  if (window.jspdf?.jsPDF) return Promise.resolve();
+  if (!jsPDFLoadPromise) {
+    jsPDFLoadPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      s.onload = resolve;
+      s.onerror = () => { jsPDFLoadPromise = null; reject(new Error('jsPDF load failed')); };
+      document.head.appendChild(s);
+    });
+  }
+  return jsPDFLoadPromise;
+}
+
+function getImageDims(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+async function downloadPayslipPDF() {
+  const cur = STATE.currentSlip;
+  if (!cur) { showToast('Open a payslip first'); return; }
+
+  try {
+    showToast('Preparing PDF…');
+    await ensureJsPDF();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const W = 210;
+    let y = 16;
+
+    // Company logo (from admin settings)
+    const logo = COMPANY_SETTINGS.company_logo;
+    if (logo && logo.startsWith('data:image')) {
+      try {
+        const dim = await getImageDims(logo);
+        const w = 44;
+        const h = w * dim.h / dim.w;
+        doc.addImage(logo, 'PNG', (W - w) / 2, y, w, h);
+        y += h + 7;
+      } catch (e) { /* logo optional */ }
+    }
+
+    doc.setFontSize(15);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(20, 20, 40);
+    doc.text('Salary Slip', W / 2, y, { align: 'center' });
+    y += 6;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.setTextColor(110, 110, 130);
+    doc.text(cur.monthLabel, W / 2, y, { align: 'center' });
+    y += 8;
+    doc.setDrawColor(210, 215, 230);
+    doc.line(14, y, W - 14, y);
+    y += 8;
+
+    doc.setTextColor(20, 20, 40);
+    doc.setFontSize(10);
+    [
+      ['Employee', cur.emp.name || '-'],
+      ['Employee ID', cur.emp.emp_id || '-'],
+      ['Designation', cur.emp.designation || '-'],
+      ['Department', cur.emp.department || '-']
+    ].forEach(([k, v]) => {
+      doc.setFont(undefined, 'bold');
+      doc.text(k, 14, y);
+      doc.setFont(undefined, 'normal');
+      doc.text(String(v), 60, y);
+      y += 6;
+    });
+    doc.setFontSize(9);
+    doc.setTextColor(110, 110, 130);
+    doc.text(cur.attLine.replace(/\|/g, '·'), 14, y);
+    y += 9;
+
+    const money = n => 'Rs. ' + Math.round(n || 0).toLocaleString('en-IN');
+    const s = cur.slip;
+    const secHead = (title) => {
+      doc.setFillColor(238, 243, 255);
+      doc.rect(14, y - 4.5, W - 28, 7, 'F');
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(9.5);
+      doc.setTextColor(60, 70, 110);
+      doc.text(title.toUpperCase(), 16, y);
+      doc.setTextColor(20, 20, 40);
+      y += 8.5;
+    };
+    const row = (label, val, bold) => {
+      doc.setFontSize(10);
+      doc.setFont(undefined, bold ? 'bold' : 'normal');
+      doc.text(label, 16, y);
+      doc.text(money(val), W - 16, y, { align: 'right' });
+      y += 6.5;
+    };
+
+    secHead('Earnings');
+    row('Basic salary', s.basic);
+    row('HRA', s.hra);
+    row('DA', s.da);
+    row('Other allowances', s.allowances);
+    row('Gross', s.gross, true);
+    y += 3;
+    secHead('Deductions');
+    row('PF Deduction', s.pf);
+    row('ESI', s.esi);
+    row('Insurance', s.insurance);
+    row('Attendance penalty', s.penalty);
+    row('Total deductions', s.totalDed, true);
+    y += 3;
+
+    doc.setFillColor(0, 102, 255);
+    doc.rect(14, y - 5, W - 28, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(11);
+    doc.text('NET SALARY', 16, y + 1.5);
+    doc.text(money(s.net), W - 16, y + 1.5, { align: 'right' });
+
+    doc.setTextColor(150, 150, 165);
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'normal');
+    doc.text('This is a computer-generated payslip and does not require a signature.', W / 2, 287, { align: 'center' });
+
+    doc.save(`Payslip-${cur.emp.emp_id}-${cur.monthStr}.pdf`);
+  } catch (err) {
+    console.error('PDF error:', err);
+    showToast('PDF download failed');
+  }
+}
+
+// Photo Upload Handler
+async function uploadProfilePhoto(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (!cur?.emp?.id) {
+    showToast('Employee ID not found');
+    return;
+  }
+
+  try {
+    const uploadBtn = document.querySelector('.avatar-change-btn');
+    uploadBtn.disabled = true;
+
+    // Compress image
+    const compressed = await photoUpload.compressImage(file, 800, 800, 0.85);
+
+    // Upload to Cloudinary
+    const result = await photoUpload.uploadPhoto(compressed, cur.emp.id);
+
+    if (result.success) {
+      // Update avatar display
+      document.getElementById('profile-avatar').style.backgroundImage = `url('${result.url}')`;
+      document.getElementById('profile-avatar').textContent = '';
+
+      // Save to Supabase
+      const { error } = await supabaseClient
+        .from('employees')
+        .update({
+          photo_url: result.url,
+          photo_size_kb: Math.round(result.size / 1024)
+        })
+        .eq('id', cur.emp.id);
+
+      if (error) throw error;
+      showToast('Photo uploaded successfully');
+    } else {
+      showToast(`Upload failed: ${result.error}`);
+    }
+  } catch (error) {
+    console.error('Photo upload error:', error);
+    showToast(`Error: ${error.message}`);
+  } finally {
+    document.querySelector('.avatar-change-btn').disabled = false;
+    event.target.value = '';
+  }
+}
+
+window.addEventListener('load', async () => {
+  if (!await initSupabase()) return;
+
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    try {
+      await enterAppForCurrentUser();
+    } catch (err) {
+      console.error('Resume session failed:', err);
+      await supabaseClient.auth.signOut();
+      localStorage.removeItem('auth_emp_id');
+      showToast(err.message || 'Could not sign you in. Contact your HR admin.');
+    }
+  } else {
+    localStorage.removeItem('auth_emp_id');
+  }
+
+  loadCompanySettings().catch(e => console.error('Settings error:', e));
+  loadLeaveTypes().catch(e => console.error('Leave types error:', e));
+
+  setTimeout(() => {
+    initCalendarEventListeners();
+  }, 500);
+  populateMonthPicker().catch(e => console.error('Month picker error:', e));
+  setupDatePickerListeners();
+
+  const theme = localStorage.getItem('theme_mode') || 'dark';
+  if (theme === 'light') toggleTheme();
+});
+</script>
+
+</body>
+</html>
