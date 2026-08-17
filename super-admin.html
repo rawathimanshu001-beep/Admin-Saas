@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hivu HR — Super Admin</title>
+<link rel="icon" type="image/png" href="./www/hivu-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./config.js"></script>
+<style>
+:root {
+  --primary: #2E7CF6;
+  --primary-dim: #1E5FD0;
+  --primary-soft: rgba(46, 124, 246, 0.12);
+  --red: #F0556A;
+  --orange: #F5A623;
+  --green: #2ECC8F;
+  --navy: #0C0F15;
+  --surface: #151A22;
+  --surface-alt: #1C2330;
+  --border: #232B38;
+  --text: #F4F6F9;
+  --muted: #8A94A6;
+  --radius: 10px;
+  --radius-sm: 8px;
+  --shadow-md: 0 6px 24px rgba(0, 0, 0, 0.28);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+html, body { height: 100%; background: var(--navy); color: var(--text); }
+
+.login-screen {
+  display: flex; flex-direction: column; min-height: 100vh;
+  align-items: center; justify-content: center; padding: 24px;
+}
+.login-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 24px; width: 100%; max-width: 380px; box-shadow: var(--shadow-md);
+}
+.login-title { font-size: 19px; font-weight: 700; text-align: center; margin-bottom: 20px; }
+.field-label { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.input {
+  width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-size: 14px; color: var(--text); background: var(--navy); margin-bottom: 12px;
+}
+.input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+.btn {
+  width: 100%; padding: 12px; border-radius: 6px; background: var(--primary); color: #fff;
+  font-size: 14px; font-weight: 600; border: none; cursor: pointer;
+}
+.btn:hover { background: var(--primary-dim); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.error-text { color: var(--red); font-size: 12.5px; margin: -4px 0 12px; display: none; }
+
+/* Dashboard */
+.app { display: none; min-height: 100vh; }
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 28px; border-bottom: 1px solid var(--border); background: var(--surface);
+}
+.topbar-title { font-size: 17px; font-weight: 700; }
+.topbar-sub { font-size: 12.5px; color: var(--muted); }
+.logout-link { color: var(--muted); font-size: 13px; cursor: pointer; }
+.logout-link:hover { color: var(--text); }
+.content { padding: 28px; max-width: 1000px; margin: 0 auto; }
+.content-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+.content-title { font-size: 20px; font-weight: 700; }
+.btn-new { width: auto; padding: 10px 18px; display: inline-flex; align-items: center; gap: 6px; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 12px 16px; font-size: 13.5px; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+tr:last-child td { border-bottom: none; }
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.badge-trial { background: rgba(245,166,35,0.15); color: var(--orange); }
+.badge-active { background: rgba(46,204,143,0.15); color: var(--green); }
+.badge-suspended { background: rgba(240,85,106,0.15); color: var(--red); }
+.row-actions { display: flex; gap: 8px; }
+.btn-sm {
+  padding: 6px 12px; border-radius: 6px; font-size: 12.5px; font-weight: 600;
+  border: 1px solid var(--border); background: var(--surface-alt); color: var(--text); cursor: pointer;
+}
+.btn-sm:hover { border-color: var(--primary); }
+.empty-state { padding: 40px; text-align: center; color: var(--muted); font-size: 13.5px; }
+
+/* Modal */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  align-items: center; justify-content: center; z-index: 50; padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 420px; }
+.modal-title { font-size: 17px; font-weight: 700; margin-bottom: 18px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 6px; }
+.btn-secondary { background: var(--surface-alt); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.stat-value { font-size: 22px; font-weight: 700; }
+.stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.btn-danger { background: transparent; border: 1px solid var(--red); color: var(--red); }
+.btn-danger:hover { background: rgba(240,85,106,0.1); }
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--border); }
+.tab-link { padding: 10px 16px; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; }
+.tab-link.active { color: var(--text); border-bottom-color: var(--primary); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  padding: 12px 20px; border-radius: var(--radius-sm); box-shadow: var(--shadow-md);
+  font-size: 13.5px; display: none; z-index: 100;
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="login-screen">
+  <img src="./www/hivu-logo.png" alt="Hivu" style="height:56px;width:auto;margin-bottom:20px;object-fit:contain">
+  <div class="login-card">
+    <div class="login-title">Hivu HR — Super Admin</div>
+    <div class="field-label">Email address</div>
+    <input class="input" type="email" id="login-email" placeholder="you@hivu.com" autocomplete="username">
+    <div class="field-label">Password</div>
+    <input class="input" type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
+    <div class="error-text" id="login-error"></div>
+    <button class="btn" id="login-btn" onclick="login()">Sign in</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="app">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px">
+      <img src="./www/hivu-logo.png" alt="Hivu" style="height:30px;width:auto;object-fit:contain">
+      <div>
+        <div class="topbar-title">Hivu HR — Super Admin</div>
+        <div class="topbar-sub" id="topbar-email"></div>
+      </div>
+    </div>
+    <div class="logout-link" onclick="logout()">Sign out</div>
+  </div>
+
+  <div class="content">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-value" id="stat-total-companies">—</div><div class="stat-label">Total companies</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-total-employees">—</div><div class="stat-label">Total employees</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-active">—</div><div class="stat-label">Active</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-trial-suspended">—</div><div class="stat-label">Trial / Suspended</div></div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab-link active" id="tab-link-companies" onclick="switchTab('companies')">Companies</div>
+      <div class="tab-link" id="tab-link-admins" onclick="switchTab('admins')">Super Admins</div>
+    </div>
+
+    <div class="tab-panel active" id="tab-panel-companies">
+    <div class="content-header">
+      <div class="content-title">Companies</div>
+      <button class="btn btn-new" onclick="openNewCompanyModal()"><i class="ti ti-plus"></i> New Company</button>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:14px">
+      <input class="input" style="margin-bottom:0" type="text" id="company-search" placeholder="Search by name or code…" oninput="renderCompanies()">
+      <select class="input" style="margin-bottom:0;width:160px" id="status-filter" onchange="renderCompanies()">
+        <option value="">All statuses</option>
+        <option value="trial">Trial</option>
+        <option value="active">Active</option>
+        <option value="suspended">Suspended</option>
+      </select>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Code</th>
+            <th>Status</th>
+            <th>Employees</th>
+            <th>Created</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="companies-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="empty-state" style="display:none">No companies yet. Click "New Company" to onboard your first one.</div>
+    </div>
+
+    <div class="content-header" style="margin-top:32px">
+      <div class="content-title">Recent Activity</div>
+    </div>
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>Actor</th>
+            <th>Action</th>
+            <th>Details</th>
+          </tr>
+        </thead>
+        <tbody id="activity-tbody"></tbody>
+      </table>
+      <div class="empty-state" id="activity-empty" style="display:none">No activity yet.</div>
+    </div>
+    </div>
+
+    <div class="tab-panel" id="tab-panel-admins">
+      <div class="content-header">
+        <div class="content-title">Super Admins</div>
+        <button class="btn btn-new" onclick="openNewSuperAdminModal()"><i class="ti ti-plus"></i> Add Super Admin</button>
+      </div>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Added</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="super-admins-tbody"></tbody>
+        </table>
+        <div class="empty-state" id="super-admins-empty" style="display:none">No super admins found.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NEW COMPANY MODAL -->
+<div class="modal-overlay" id="new-company-modal">
+  <div class="modal">
+    <div class="modal-title">Onboard a new company</div>
+    <div class="field-label">Company name</div>
+    <input class="input" type="text" id="new-company-name" placeholder="e.g. Acme Textiles Pvt Ltd">
+    <div class="field-label">Admin's full name</div>
+    <input class="input" type="text" id="new-admin-name" placeholder="e.g. Priya Sharma">
+    <div class="field-label">Admin's email</div>
+    <input class="input" type="email" id="new-admin-email" placeholder="admin@company.com">
+    <div class="error-text" id="new-company-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeNewCompanyModal()">Cancel</button>
+      <button class="btn" id="new-company-submit" onclick="submitNewCompany()">Create & invite admin</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMPANY DETAIL MODAL -->
+<div class="modal-overlay" id="company-detail-modal">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-title" id="detail-company-name">Company</div>
+
+    <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px">Admin</div>
+    <div style="font-size:13.5px;margin-bottom:4px" id="detail-admin-name">—</div>
+    <div style="font-size:13.5px;color:var(--muted);margin-bottom:6px" id="detail-admin-email">—</div>
+    <div style="margin-bottom:16px" id="detail-admin-status"></div>
+
+    <div class="field-label">Company name</div>
+    <input class="input" type="text" id="detail-edit-name">
+    <div class="field-label">Trial ends</div>
+    <input class="input" type="date" id="detail-edit-trial">
+    <div class="field-label">Plan</div>
+    <select class="input" id="detail-edit-plan">
+      <option value="free">Free</option>
+      <option value="trial">Trial</option>
+      <option value="pro">Pro</option>
+      <option value="enterprise">Enterprise</option>
+    </select>
+    <div class="error-text" id="detail-error"></div>
+
+    <div class="modal-actions">
+      <button class="btn-sm" id="detail-invite-btn" onclick="resendInviteOrReset()" style="flex:1"></button>
+      <button class="btn-sm" onclick="closeDetailModal()" style="flex:1">Close</button>
+      <button class="btn" id="detail-save-btn" onclick="saveCompanyDetail()" style="flex:1">Save</button>
+    </div>
+
+    <div id="detail-danger-zone" style="display:none;margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px">Danger zone</div>
+      <button class="btn-sm btn-danger" style="width:100%" onclick="openDeleteConfirm()">Delete company permanently</button>
+    </div>
+  </div>
+</div>
+
+<!-- DELETE COMPANY CONFIRM MODAL -->
+<div class="modal-overlay" id="delete-confirm-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Delete company permanently?</div>
+    <div style="font-size:13.5px;color:var(--muted);margin-bottom:16px">This cannot be undone. Type <strong id="delete-confirm-code" style="color:var(--text)"></strong> below to confirm.</div>
+    <input class="input" type="text" id="delete-confirm-input" placeholder="Type the company code">
+    <div class="error-text" id="delete-confirm-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeDeleteConfirm()">Cancel</button>
+      <button class="btn btn-danger" id="delete-confirm-btn" onclick="confirmDeleteCompany()" style="background:var(--red);color:#fff;border:none">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW SUPER ADMIN MODAL -->
+<div class="modal-overlay" id="new-super-admin-modal">
+  <div class="modal">
+    <div class="modal-title">Add a super admin</div>
+    <div class="field-label">Full name</div>
+    <input class="input" type="text" id="new-sa-name" placeholder="e.g. Priya Sharma">
+    <div class="field-label">Email</div>
+    <input class="input" type="email" id="new-sa-email" placeholder="teammate@hivu.com">
+    <div class="error-text" id="new-sa-error"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeNewSuperAdminModal()">Cancel</button>
+      <button class="btn" id="new-sa-submit" onclick="submitNewSuperAdmin()">Send invite</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let supabaseClient;
+
+async function initSupabase() {
+  if (!window.HIVU_CONFIG || !HIVU_CONFIG.supabaseUrl || !HIVU_CONFIG.supabaseKey) {
+    alert('Supabase not configured');
+    return false;
+  }
+  const { createClient } = window.supabase;
+  supabaseClient = createClient(HIVU_CONFIG.supabaseUrl, HIVU_CONFIG.supabaseKey);
+  return true;
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+
+async function login() {
+  const email = document.getElementById('login-email').value.trim().toLowerCase();
+  const password = document.getElementById('login-password').value;
+  const errorEl = document.getElementById('login-error');
+  const btn = document.getElementById('login-btn');
+  errorEl.style.display = 'none';
+
+  if (!email || !password) {
+    errorEl.textContent = 'Enter your email and password';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in…';
+
+  try {
+    const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if (error) {
+      errorEl.textContent = 'Invalid email or password';
+      errorEl.style.display = 'block';
+      return;
+    }
+    await enterApp();
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Sign in';
+  }
+}
+
+let currentAuthUserId = null;
+
+async function enterApp() {
+  const { data: { user } } = await supabaseClient.auth.getUser();
+  const { data: isSuper, error } = await supabaseClient.rpc('is_super_admin');
+  if (error || !isSuper) {
+    await supabaseClient.auth.signOut();
+    throw new Error('This account is not a super admin.');
+  }
+
+  currentAuthUserId = user.id;
+  document.getElementById('topbar-email').textContent = user.email;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  await loadCompanies();
+  await loadAuditLog();
+  await loadSuperAdmins();
+}
+
+function switchTab(tab) {
+  document.getElementById('tab-link-companies').classList.toggle('active', tab === 'companies');
+  document.getElementById('tab-link-admins').classList.toggle('active', tab === 'admins');
+  document.getElementById('tab-panel-companies').classList.toggle('active', tab === 'companies');
+  document.getElementById('tab-panel-admins').classList.toggle('active', tab === 'admins');
+}
+
+async function logout() {
+  await supabaseClient.auth.signOut();
+  location.reload();
+}
+
+function statusBadge(status) {
+  const cls = status === 'active' ? 'badge-active' : status === 'suspended' ? 'badge-suspended' : 'badge-trial';
+  return `<span class="badge ${cls}">${status}</span>`;
+}
+
+let allCompanies = [];
+
+async function loadCompanies() {
+  const { data, error } = await supabaseClient.rpc('super_admin_list_companies');
+  if (error) {
+    showToast('Error loading companies: ' + error.message);
+    return;
+  }
+  allCompanies = data || [];
+  renderCompanies();
+  renderStats();
+}
+
+function renderStats() {
+  const total = allCompanies.length;
+  const totalEmployees = allCompanies.reduce((sum, c) => sum + Number(c.employee_count || 0), 0);
+  const active = allCompanies.filter(c => c.status === 'active').length;
+  const trial = allCompanies.filter(c => c.status === 'trial').length;
+  const suspended = allCompanies.filter(c => c.status === 'suspended').length;
+  document.getElementById('stat-total-companies').textContent = total;
+  document.getElementById('stat-total-employees').textContent = totalEmployees;
+  document.getElementById('stat-active').textContent = active;
+  document.getElementById('stat-trial-suspended').textContent = `${trial} / ${suspended}`;
+}
+
+function renderCompanies() {
+  const tbody = document.getElementById('companies-tbody');
+  const empty = document.getElementById('empty-state');
+  const search = document.getElementById('company-search').value.trim().toLowerCase();
+  const statusFilter = document.getElementById('status-filter').value;
+
+  const filtered = allCompanies.filter(c => {
+    const matchesSearch = !search || c.name.toLowerCase().includes(search) || c.code.toLowerCase().includes(search);
+    const matchesStatus = !statusFilter || c.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    empty.textContent = allCompanies.length === 0 ? 'No companies yet. Click "New Company" to onboard your first one.' : 'No companies match your search.';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = filtered.map(c => `
+    <tr>
+      <td style="cursor:pointer" onclick="openCompanyDetail('${c.id}')">${escapeHtml(c.name)}</td>
+      <td>${escapeHtml(c.code)}</td>
+      <td>${statusBadge(c.status)}</td>
+      <td>${c.employee_count}</td>
+      <td>${new Date(c.created_at).toLocaleDateString()}</td>
+      <td>
+        <div class="row-actions">
+          <button class="btn-sm" onclick="openCompanyDetail('${c.id}')">View</button>
+          ${c.status !== 'suspended'
+            ? `<button class="btn-sm" onclick="setStatus('${c.id}','suspended')">Suspend</button>`
+            : `<button class="btn-sm" onclick="setStatus('${c.id}','active')">Activate</button>`}
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function setStatus(companyId, status) {
+  const { error } = await supabaseClient.rpc('super_admin_set_company_status', { p_company_id: companyId, p_status: status });
+  if (error) {
+    showToast('Error: ' + error.message);
+    return;
+  }
+  showToast(status === 'suspended' ? 'Company suspended' : 'Company activated');
+  await loadCompanies();
+  await loadAuditLog();
+}
+
+let currentDetail = null;
+
+async function openCompanyDetail(companyId) {
+  const { data, error } = await supabaseClient.rpc('super_admin_company_detail', { p_company_id: companyId });
+  if (error || !data || data.length === 0) {
+    showToast('Error loading company: ' + (error ? error.message : 'not found'));
+    return;
+  }
+  const c = data[0];
+  currentDetail = c;
+
+  document.getElementById('detail-company-name').textContent = c.name;
+  document.getElementById('detail-admin-name').textContent = c.admin_name || '—';
+  document.getElementById('detail-admin-email').textContent = c.admin_email || '—';
+  document.getElementById('detail-admin-status').innerHTML = c.admin_activated
+    ? '<span class="badge badge-active">Activated</span>'
+    : '<span class="badge badge-trial">Invite pending</span>';
+  document.getElementById('detail-edit-name').value = c.name;
+  document.getElementById('detail-edit-trial').value = c.trial_ends_at || '';
+  document.getElementById('detail-edit-plan').value = c.plan || 'free';
+  document.getElementById('detail-error').style.display = 'none';
+
+  const inviteBtn = document.getElementById('detail-invite-btn');
+  inviteBtn.textContent = c.admin_activated ? 'Send password reset' : 'Resend invite';
+
+  document.getElementById('detail-danger-zone').style.display = Number(c.employee_count) === 0 ? 'block' : 'none';
+
+  document.getElementById('company-detail-modal').classList.add('open');
+}
+
+function closeDetailModal() {
+  document.getElementById('company-detail-modal').classList.remove('open');
+  currentDetail = null;
+}
+
+async function saveCompanyDetail() {
+  if (!currentDetail) return;
+  const name = document.getElementById('detail-edit-name').value.trim();
+  const trial = document.getElementById('detail-edit-trial').value || null;
+  const plan = document.getElementById('detail-edit-plan').value;
+  const errorEl = document.getElementById('detail-error');
+  errorEl.style.display = 'none';
+
+  if (!name) {
+    errorEl.textContent = 'Company name is required';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const { error } = await supabaseClient.rpc('super_admin_update_company', {
+    p_company_id: currentDetail.id, p_name: name, p_trial_ends_at: trial, p_plan: plan
+  });
+  if (error) {
+    errorEl.textContent = 'Error: ' + error.message;
+    errorEl.style.display = 'block';
+    return;
+  }
+  showToast('Company updated');
+  closeDetailModal();
+  await loadCompanies();
+  await loadAuditLog();
+}
+
+function openDeleteConfirm() {
+  if (!currentDetail) return;
+  document.getElementById('delete-confirm-code').textContent = currentDetail.code;
+  document.getElementById('delete-confirm-input').value = '';
+  document.getElementById('delete-confirm-error').style.display = 'none';
+  document.getElementById('delete-confirm-modal').classList.add('open');
+}
+
+function closeDeleteConfirm() {
+  document.getElementById('delete-confirm-modal').classList.remove('open');
+}
+
+async function confirmDeleteCompany() {
+  if (!currentDetail) return;
+  const typed = document.getElementById('delete-confirm-input').value.trim();
+  const errorEl = document.getElementById('delete-confirm-error');
+  errorEl.style.display = 'none';
+
+  if (typed !== currentDetail.code) {
+    errorEl.textContent = 'Company code does not match';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  const btn = document.getElementById('delete-confirm-btn');
+  btn.disabled = true;
+  try {
+    const { error } = await supabaseClient.rpc('super_admin_delete_company', { p_company_id: currentDetail.id });
+    if (error) throw error;
+    showToast(`${currentDetail.name} deleted`);
+    closeDeleteConfirm();
+    closeDetailModal();
+    await loadCompanies();
+    await loadAuditLog();
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function resendInviteOrReset() {
+  if (!currentDetail) return;
+  const btn = document.getElementById('detail-invite-btn');
+  btn.disabled = true;
+
+  try {
+    if (currentDetail.admin_activated) {
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(currentDetail.admin_email);
+      if (error) throw error;
+      showToast(`Password reset email sent to ${currentDetail.admin_email}`);
+    } else {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      const res = await fetch(`${HIVU_CONFIG.supabaseUrl}/functions/v1/resend-invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        body: JSON.stringify({ company_id: currentDetail.id })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Failed to resend invite');
+      showToast(`Invite re-sent to ${currentDetail.admin_email}`);
+    }
+    await loadAuditLog();
+  } catch (err) {
+    showToast('Error: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function actionLabel(action) {
+  const map = {
+    company_created: 'Created company',
+    company_suspended: 'Suspended company',
+    company_activated: 'Activated company',
+    company_updated: 'Updated company',
+    invite_resent: 'Resent invite',
+    company_status_changed: 'Changed status',
+    company_deleted: 'Deleted company',
+    super_admin_added: 'Added super admin',
+    super_admin_removed: 'Removed super admin'
+  };
+  return map[action] || action;
+}
+
+function activityDetails(row) {
+  const d = row.details || {};
+  if (row.action === 'company_created') {
+    return `${escapeHtml(d.company_name || '')} (${escapeHtml(d.code || '')}) — invited ${escapeHtml(d.admin_email || '')}`;
+  }
+  if (row.action === 'company_status_changed') {
+    return `${escapeHtml(d.from || '')} → ${escapeHtml(d.to || '')}`;
+  }
+  if (row.action === 'company_updated') {
+    return `${escapeHtml(d.name || '')}${d.trial_ends_at ? ' — trial ends ' + escapeHtml(d.trial_ends_at) : ''}`;
+  }
+  if (row.action === 'invite_resent') {
+    return `${escapeHtml(d.company_name || '')} — ${escapeHtml(d.admin_email || '')}`;
+  }
+  if (row.action === 'company_deleted') {
+    return `${escapeHtml(d.name || '')} (${escapeHtml(d.code || '')})`;
+  }
+  if (row.action === 'super_admin_added' || row.action === 'super_admin_removed') {
+    return escapeHtml(d.email || '');
+  }
+  return escapeHtml(d.company_name || d.code || '');
+}
+
+let allSuperAdmins = [];
+
+async function loadSuperAdmins() {
+  const { data, error } = await supabaseClient.rpc('super_admin_list_super_admins');
+  if (error) {
+    showToast('Error loading super admins: ' + error.message);
+    return;
+  }
+  allSuperAdmins = data || [];
+  renderSuperAdmins();
+}
+
+function renderSuperAdmins() {
+  const tbody = document.getElementById('super-admins-tbody');
+  const empty = document.getElementById('super-admins-empty');
+  if (allSuperAdmins.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = allSuperAdmins.map(a => `
+    <tr>
+      <td>${escapeHtml(a.name || '—')}</td>
+      <td>${escapeHtml(a.email)}</td>
+      <td>${new Date(a.created_at).toLocaleDateString()}</td>
+      <td>
+        ${a.auth_user_id === currentAuthUserId || allSuperAdmins.length <= 1
+          ? ''
+          : `<button class="btn-sm btn-danger" onclick="removeSuperAdmin('${a.id}')">Remove</button>`}
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openNewSuperAdminModal() {
+  document.getElementById('new-sa-name').value = '';
+  document.getElementById('new-sa-email').value = '';
+  document.getElementById('new-sa-error').style.display = 'none';
+  document.getElementById('new-super-admin-modal').classList.add('open');
+}
+
+function closeNewSuperAdminModal() {
+  document.getElementById('new-super-admin-modal').classList.remove('open');
+}
+
+async function submitNewSuperAdmin() {
+  const name = document.getElementById('new-sa-name').value.trim();
+  const email = document.getElementById('new-sa-email').value.trim().toLowerCase();
+  const errorEl = document.getElementById('new-sa-error');
+  const btn = document.getElementById('new-sa-submit');
+  errorEl.style.display = 'none';
+
+  if (!name || !email) {
+    errorEl.textContent = 'Fill in all fields';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const res = await fetch(`${HIVU_CONFIG.supabaseUrl}/functions/v1/invite-super-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+      body: JSON.stringify({ email, name })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to add super admin');
+
+    closeNewSuperAdminModal();
+    showToast(`✅ ${email} added as super admin`);
+    await loadSuperAdmins();
+    await loadAuditLog();
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send invite';
+  }
+}
+
+async function removeSuperAdmin(id) {
+  const { error } = await supabaseClient.rpc('super_admin_remove_super_admin', { p_id: id });
+  if (error) {
+    showToast('Error: ' + error.message);
+    return;
+  }
+  showToast('Super admin removed');
+  await loadSuperAdmins();
+  await loadAuditLog();
+}
+
+function timeAgo(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
+async function loadAuditLog() {
+  const tbody = document.getElementById('activity-tbody');
+  const empty = document.getElementById('activity-empty');
+  const { data, error } = await supabaseClient.rpc('super_admin_list_audit_log');
+  if (error) {
+    showToast('Error loading activity: ' + error.message);
+    return;
+  }
+  if (!data || data.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = data.map(row => `
+    <tr>
+      <td>${timeAgo(row.created_at)}</td>
+      <td>${escapeHtml(row.actor_email)}</td>
+      <td>${escapeHtml(actionLabel(row.action))}</td>
+      <td>${activityDetails(row)}</td>
+    </tr>
+  `).join('');
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return String(text).replace(/[&<>"']/g, m => map[m]);
+}
+
+function openNewCompanyModal() {
+  document.getElementById('new-company-name').value = '';
+  document.getElementById('new-admin-name').value = '';
+  document.getElementById('new-admin-email').value = '';
+  document.getElementById('new-company-error').style.display = 'none';
+  document.getElementById('new-company-modal').classList.add('open');
+}
+
+function closeNewCompanyModal() {
+  document.getElementById('new-company-modal').classList.remove('open');
+}
+
+async function submitNewCompany() {
+  const company_name = document.getElementById('new-company-name').value.trim();
+  const admin_name = document.getElementById('new-admin-name').value.trim();
+  const admin_email = document.getElementById('new-admin-email').value.trim().toLowerCase();
+  const errorEl = document.getElementById('new-company-error');
+  const btn = document.getElementById('new-company-submit');
+  errorEl.style.display = 'none';
+
+  if (!company_name || !admin_name || !admin_email) {
+    errorEl.textContent = 'Fill in all fields';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Creating…';
+
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    const res = await fetch(`${HIVU_CONFIG.supabaseUrl}/functions/v1/create-company`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify({ company_name, admin_name, admin_email })
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || 'Failed to create company');
+
+    closeNewCompanyModal();
+    showToast(`✅ ${company_name} onboarded — invite sent to ${admin_email}`);
+    await loadCompanies();
+    await loadAuditLog();
+  } catch (err) {
+    errorEl.textContent = 'Error: ' + err.message;
+    errorEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create & invite admin';
+  }
+}
+
+window.addEventListener('load', async () => {
+  if (!await initSupabase()) return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    try {
+      await enterApp();
+    } catch (err) {
+      console.error('Resume session failed:', err);
+      showToast(err.message);
+    }
+  }
+});
+</script>
+</body>
+</html>
