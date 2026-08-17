@@ -2691,7 +2691,7 @@ async function changeAdminPassword() {
 async function adminForgotPassword() {
   const email = document.getElementById('admin-email').value.trim().toLowerCase();
   if (!email) {
-    alert('Email address darj karein');
+    alert('Please enter your email address first');
     return false;
   }
 
@@ -2702,7 +2702,7 @@ async function adminForgotPassword() {
       .rpc('admin_email_registered', { check_email: email });
 
     if (queryError || !exists) {
-      alert('Ye email hamare admin database mein registered nahi hai.');
+      alert('This email is not registered as an admin.');
       return false;
     }
 
@@ -2711,9 +2711,9 @@ async function adminForgotPassword() {
     alert('✅ Password reset link aapke email par bhej di gayi.\n\nInbox check karein (2-3 minute lagenge).');
   } catch (err) {
     if (err.message && err.message.includes('No rows')) {
-      alert('Ye email registered nahi hai.');
+      alert('This email is not registered.');
     } else {
-      alert('Error: ' + (err.message || 'Kuch masla aya'));
+      alert('Error: ' + (err.message || 'Something went wrong'));
     }
   }
   return false;
