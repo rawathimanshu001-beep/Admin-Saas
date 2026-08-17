@@ -2885,8 +2885,16 @@ async function initSupabase() {
 
 async function forgotPassword() {
   const email = document.getElementById('email-input').value.trim().toLowerCase();
+  // Persistent inline message below the password field (stays until next action)
+  const msgEl = document.getElementById('login-error');
+  const showMsg = (text, ok) => {
+    msgEl.textContent = text;
+    msgEl.style.color = ok ? '#22c55e' : '';
+    msgEl.style.display = 'block';
+  };
+
   if (!email) {
-    showToast('Please enter your email address first');
+    showMsg('Please enter your email address first, then tap Forgot password.', false);
     return false;
   }
 
@@ -2894,6 +2902,7 @@ async function forgotPassword() {
   const originalText = loginBtn.textContent;
   loginBtn.disabled = true;
   loginBtn.textContent = 'Sending...';
+  showMsg('Checking...', true);
 
   try {
     // Pehle check karo ki email employees mein hai ya nahi
@@ -2902,19 +2911,15 @@ async function forgotPassword() {
       .rpc('email_registered', { check_email: email });
 
     if (queryError || !exists) {
-      showToast('This email is not registered in our system. Please contact your HR admin.');
+      showMsg('This email is not registered in our system. Please contact your HR admin.', false);
       return false;
     }
 
     // Email found — ab reset link bhejo
     await supabaseClient.auth.resetPasswordForEmail(email);
-    showToast('✅ Password reset link sent to your email. Check your inbox (may take 2-3 minutes).');
+    showMsg('✅ Password reset link sent to ' + email + '. Check your inbox (may take 2-3 minutes).', true);
   } catch (err) {
-    if (err.message && err.message.includes('No rows')) {
-      showToast('This email is not registered.');
-    } else {
-      showToast('Error: ' + (err.message || 'Something went wrong'));
-    }
+    showMsg('Error: ' + (err.message || 'Something went wrong'), false);
   } finally {
     loginBtn.disabled = false;
     loginBtn.textContent = originalText;
