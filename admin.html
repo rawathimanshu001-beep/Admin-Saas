@@ -2695,7 +2695,7 @@ async function adminForgotPassword() {
     return false;
   }
   try {
-    await supabaseClient.auth.resetPasswordForEmail(email);
+    await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + window.location.pathname });
     alert('If that email is registered, a reset link has been sent');
   } catch (err) {
     alert('Error: ' + err.message);
